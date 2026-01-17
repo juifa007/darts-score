@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>硬靶專業記分板 V10 (高對比清晰版)</title>
+    <style>
+        /* === V10 高對比清晰配色 === */
+        :root {
+            --bg-color: #eef2f5;       /* 背景：冷色調淡灰 */
+            --panel-bg: #ffffff;       /* 面板：純白 */
+            --left-bg: #dfe4ea;        /* 左側靶面底色：稍微深一點的灰，襯托靶面 */
+            --text-main: #1a1a1a;      /* 主文字：近乎純黑 (清晰關鍵) */
+            --text-sub: #555555;       /* 次要文字：深灰 */
+            --p1-color: #007bff;       /* P1：鮮豔藍 */
+            --p2-color: #dc3545;       /* P2：鮮豔紅 */
+            --highlight: #007bff;      
+            --active-shadow: 0 10px 25px rgba(0,0,0,0.15); /* 強烈浮起感 */
+        }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden; user-select: none;
+        }
+        body { display: flex; flex-direction: column; }
+        
+        #main-container { flex: 1; display: flex; overflow: hidden; }
+
+        /* 左側：靶面區 */
+        #left-panel {
+            flex: 6;
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--left-bg);
+            position: relative;
+            border-right: 1px solid #ccc;
+        }
+
+        /* 右側：控制板 */
+        #right-panel {
+            flex: 4;
+            background-color: var(--panel-bg);
+            display: flex; flex-direction: column; padding: 15px;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        /* === 選手卡片 (清晰化設計) === */
+        .player-card {
+            background: #f8f9fa; /* 預設為淺灰 (非活動狀態) */
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin-bottom: 12px;
+            border: 2px solid #e9ecef; /* 預設淡邊框 */
+            opacity: 0.7; /* 非活動時稍微淡一點 */
+            transform: scale(0.98);
+            transition: all 0.25s ease-out;
+            position: relative;
+        }
+
+        /* 啟動狀態：純白底、深色字、粗邊框 */
+        .player-card.active {
+            opacity: 1;
+            background: #ffffff;
+            transform: scale(1.02);
+            z-index: 10;
+            border-width: 3px; /* 加粗邊框 */
+        }
+        .player-card.active-p1 { border-color: var(--p1-color); box-shadow: var(--active-shadow); }
+        .player-card.active-p2 { border-color: var(--p2-color); box-shadow: var(--active-shadow); }
+
+        /* 投擲指標 (更明顯) */
+        .turn-indicator {
+            position: absolute; left: -35px; top: 40%;
+            font-size: 30px; display: none;
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2));
+        }
+        .active .turn-indicator { display: block; animation: pointerMove 0.8s infinite alternate; }
+        @keyframes pointerMove { from { transform: translateX(0); } to { transform: translateX(8px); } }
+
+        /* 選手標題 */
+        .player-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .player-name { 
+            font-size: 1.5rem; font-weight: 900; color: var(--text-main); 
+            letter-spacing: -0.5px;
+        }
+        
+        /* 數據區 */
+        .stats-row { display: flex; gap: 8px; font-size: 0.95rem; margin-top: 5px; }
+        .stat-item { 
+            background: #e9ecef; padding: 4px 10px; border-radius: 6px; 
+            color: #444; font-weight: 600;
+        }
+        .stat-item span { color: #000; font-weight: 900; font-size: 1.1rem; }
+        
+        .leg-badge { 
+            background: #ffc107; color: #000; font-size: 0.8rem; padding: 3px 8px; 
+            border-radius: 4px; visibility: hidden; font-weight: 800; margin-left: 8px; 
+            vertical-align: middle; box-shadow: 0 2px 2px rgba(0,0,0,0.1); 
+        }
+        .starter .leg-badge { visibility: visible; }
+
+        /* 3鏢顯示格 (高對比) */
+        .round-display {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; 
+            padding: 8px 10px; border-radius: 8px; margin: 8px 0;
+            border: 2px solid #dde2e6;
+        }
+        .active .round-display { border-color: #ccc; background: #fdfdfd; }
+
+        .dart-slots { display: flex; gap: 6px; }
+        .dart-slot {
+            width: 48px; height: 36px;
+            background: #fff; border: 2px solid #ced4da; border-radius: 6px;
+            display: flex; justify-content: center; align-items: center;
+            font-family: monospace; font-size: 1.2rem; color: #adb5bd; font-weight: bold;
+        }
+        /* 填入後變深色 */
+        .dart-slot.filled {
+            border-color: #333; color: #000; background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .round-total { color: #666; font-size: 0.9rem; font-weight: bold; }
+        .round-total span { color: var(--p1-color); font-size: 1.4rem; font-weight: 900; margin-left: 5px; }
+        .active-p2 .round-total span { color: var(--p2-color); }
+
+        /* 分數大字 (極致清晰) */
+        .score-big { 
+            font-size: 4.8rem; font-weight: 900; line-height: 0.9; 
+            text-align: right; color: #222; letter-spacing: -3px; 
+            margin-top: 5px;
+        }
+
+        /* LOGO 區 */
+        #logo-placeholder {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            margin: 10px 0; border: 2px dashed #cbd5e0; border-radius: 12px;
+            color: #a0aec0; font-weight: bold; letter-spacing: 1px; background: #f7fafc;
+        }
+
+        /* 按鈕區 */
+        #control-panel { height: 65px; display: grid; grid-template-columns: 1fr 2.5fr; gap: 12px; }
+        button {
+            border: none; border-radius: 10px; font-size: 1.3rem; font-weight: 800; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); /* 實體按鈕感 */
+        }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        
+        #btn-undo { background: #fff; color: #495057; border: 2px solid #ced4da; }
+        #btn-next { background: #007bff; color: #fff; opacity: 0.5; pointer-events: none; }
+        #btn-next.ready { opacity: 1; pointer-events: all; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+        /* 遮罩 */
+        #board-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8); 
+            z-index: 100; display: none;
+            justify-content: center; align-items: center; flex-direction: column; text-align: center;
+        }
+        .overlay-text { color: #000; font-size: 3rem; font-weight: 900; }
+
+        /* SVG 優化 */
+        svg { max-width: 96%; max-height: 96%; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2)); }
+        path, circle { cursor: pointer; stroke-linejoin: round; }
+        
+        /* 靶面高對比配色 */
+        .area-black { fill: #212529; stroke: #6c757d; stroke-width: 1.5px; } /* 深黑+深灰邊框 */
+        .area-white { fill: #f8f9fa; stroke: #6c757d; stroke-width: 1.5px; } /* 亮白+深灰邊框 */
+        .area-red { fill: #e02e42; stroke: #6c757d; stroke-width: 1.5px; } /* 飽和紅 */
+        .area-green { fill: #26a65b; stroke: #6c757d; stroke-width: 1.5px; } /* 飽和綠 */
+        .text-label { font-size: 20px; font-weight: 900; fill: #fff; pointer-events: none; text-anchor: middle; dominant-baseline: middle; text-shadow: 0 0 3px rgba(0,0,0,0.8); }
+
+        @media (max-aspect-ratio: 1/1) { #main-container { flex-direction: column; } #right-panel { border-left: none; border-top: 2px solid #ccc; } }
+    </style>
+</head>
+<body>
+
+    <div id="main-container">
+        <div id="left-panel">
+            <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
+            <div id="board-overlay">
+                <div class="overlay-text">請核對分數</div>
+                <div style="font-size:1.5rem; color:#555; font-weight:bold; margin-top:10px;">並按下換人鍵</div>
+            </div>
+        </div>
+
+        <div id="right-panel">
+            
+            <div class="player-card active active-p1" id="p1-card">
+                <div class="turn-indicator">🎯</div>
+                <div class="player-header">
+                    <div class="player-name">Player 1 <span class="leg-badge">先攻</span></div>
+                    <div class="stats-row">
+                        <div class="stat-item">PPD: <span id="p1-avg">0.0</span></div>
+                        <div class="stat-item">Legs: <span id="p1-legs">0</span></div>
+                    </div>
+                </div>
+                <div class="round-display">
+                    <div class="dart-slots" id="p1-slots">
+                        <div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div>
+                    </div>
+                    <div class="round-total">Total: <span id="p1-round-total">0</span></div>
+                </div>
+                <div class="score-big" id="p1-score">501</div>
+            </div>
+
+            <div class="player-card" id="p2-card">
+                <div class="turn-indicator">🎯</div>
+                <div class="player-header">
+                    <div class="player-name">Player 2 <span class="leg-badge">先攻</span></div>
+                    <div class="stats-row">
+                        <div class="stat-item">PPD: <span id="p2-avg">0.0</span></div>
+                        <div class="stat-item">Legs: <span id="p2-legs">0</span></div>
+                    </div>
+                </div>
+                <div class="round-display">
+                    <div class="dart-slots" id="p2-slots">
+                        <div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div>
+                    </div>
+                    <div class="round-total">Total: <span id="p2-round-total">0</span></div>
+                </div>
+                <div class="score-big" id="p2-score">501</div>
+            </div>
+
+            <div id="logo-placeholder">
+                LOGO / 賽事名稱
+            </div>
+
+            <div id="control-panel">
+                <button id="btn-undo" onclick="undoLastDart()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="filter:none;"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg> 復原
+                </button>
+                <button id="btn-next" onclick="switchPlayer()">換下一位 (NEXT)</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // === 遊戲邏輯 (保持 V9 完整功能) ===
+    const GAME_MODE = 501;
+    let currentPlayer = 1, legStarter = 1, turnDarts = 0, isBoardLocked = false;
+    let players = { 1: { score: GAME_MODE, legs: 0, roundHistory: [], matchPoints: 0, matchDarts: 0 }, 2: { score: GAME_MODE, legs: 0, roundHistory: [], matchPoints: 0, matchDarts: 0 } };
+    let throwHistory = [];
+
+    const btnNext = document.getElementById('btn-next');
+    const overlay = document.getElementById('board-overlay');
+
+    function handleHit(e) {
+        if (isBoardLocked) return;
+        const scoreHit = parseInt(e.target.getAttribute("data-score"));
+        const hitId = e.target.getAttribute("data-id");
+        const p = players[currentPlayer];
+
+        if (p.score - scoreHit < 0 || p.score - scoreHit === 1) { alert("爆鏢 (Bust)!"); lockBoard(); return; }
+
+        p.score -= scoreHit; turnDarts++;
+        p.matchPoints += scoreHit; p.matchDarts++; 
+
+        let throwData = { id: hitId, score: scoreHit, player: currentPlayer, turnIndex: turnDarts };
+        p.roundHistory.push(throwData); throwHistory.push(throwData);
+        updateUI();
+
+        if (p.score === 0) { setTimeout(() => { alert(`Player ${currentPlayer} Wins Leg!`); handleLegWin(currentPlayer); }, 100); return; }
+        if (turnDarts >= 3) lockBoard();
+    }
+
+    function handleLegWin(winner) {
+        players[winner].legs++; legStarter = (winner === 1) ? 2 : 1; currentPlayer = legStarter;
+        players[1].score = GAME_MODE; players[2].score = GAME_MODE;
+        players[1].roundHistory = []; players[2].roundHistory = [];
+        throwHistory = []; turnDarts = 0; isBoardLocked = false;
+        updateUI(); updateActiveCard();
+    }
+
+    function switchPlayer() {
+        isBoardLocked = false; turnDarts = 0;
+        players[currentPlayer].roundHistory = []; 
+        currentPlayer = (currentPlayer === 1) ? 2 : 1;
+        updateUI(); updateActiveCard();
+    }
+
+    function undoLastDart() {
+        if (throwHistory.length === 0) return;
+        const last = throwHistory[throwHistory.length - 1];
+        if (last.player !== currentPlayer) { alert("無法修改對手的上一輪！"); return; }
+        if (isBoardLocked) isBoardLocked = false;
+        
+        const p = players[currentPlayer];
+        p.score += last.score;
+        p.matchPoints -= last.score; p.matchDarts--;
+        
+        p.roundHistory.pop(); throwHistory.pop(); turnDarts--;
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('p1-score').innerText = players[1].score;
+        document.getElementById('p2-score').innerText = players[2].score;
+        document.getElementById('p1-legs').innerText = players[1].legs;
+        document.getElementById('p2-legs').innerText = players[2].legs;
+
+        updateAvg(1); updateAvg(2);
+
+        if (legStarter === 1) { document.getElementById('p1-card').classList.add('starter'); document.getElementById('p2-card').classList.remove('starter'); } 
+        else { document.getElementById('p1-card').classList.remove('starter'); document.getElementById('p2-card').classList.add('starter'); }
+
+        updateSlots(1); updateSlots(2);
+
+        if (isBoardLocked) { overlay.style.display = 'flex'; btnNext.classList.add('ready'); } 
+        else { overlay.style.display = 'none'; btnNext.classList.remove('ready'); }
+    }
+
+    function updateAvg(pid) {
+        const p = players[pid];
+        let avg = p.matchDarts === 0 ? 0 : (p.matchPoints / p.matchDarts);
+        document.getElementById(`p${pid}-avg`).innerText = avg.toFixed(1);
+    }
+
+    function updateSlots(pid) {
+        const hist = players[pid].roundHistory;
+        const slots = document.getElementById(`p${pid}-slots`).getElementsByClassName('dart-slot');
+        let total = 0;
+        for(let s of slots) { s.innerText = '-'; s.classList.remove('filled'); }
+        hist.forEach((h, i) => { if (slots[i]) { slots[i].innerText = h.id; slots[i].classList.add('filled'); total += h.score; } });
+        document.getElementById(`p${pid}-round-total`).innerText = total;
+    }
+
+    function updateActiveCard() {
+        document.getElementById('p1-card').classList.remove('active', 'active-p1');
+        document.getElementById('p2-card').classList.remove('active', 'active-p2');
+        document.getElementById(`p${currentPlayer}-card`).classList.add('active', `active-p${currentPlayer}`);
+    }
+
+    function lockBoard() { isBoardLocked = true; updateUI(); }
+
+    const svg = document.getElementById('dartboard');
+    const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+    const R_BULL_INNER = 12, R_BULL_OUTER = 25, R_SINGLE_INNER = 80, R_TRIPLE = 110, R_SINGLE_OUTER = 160, R_DOUBLE = 195;
+
+    function createBoard() {
+        const sectorAngle = 360 / 20;
+        SECTORS.forEach((score, i) => {
+            const startAngle = (i * sectorAngle) - 90 - (sectorAngle/2);
+            const endAngle = startAngle + sectorAngle;
+            const isEven = i % 2 === 0;
+            const cSingle = isEven ? 'area-black' : 'area-white';
+            const cMulti = isEven ? 'area-red' : 'area-green';
+            drawSector(startAngle, endAngle, R_SINGLE_OUTER, R_DOUBLE, cMulti, `D${score}`, score * 2);
+            drawSector(startAngle, endAngle, R_TRIPLE, R_SINGLE_OUTER, cSingle, `S${score}`, score);
+            drawSector(startAngle, endAngle, R_SINGLE_INNER, R_TRIPLE, cMulti, `T${score}`, score * 3);
+            drawSector(startAngle, endAngle, R_BULL_OUTER, R_SINGLE_INNER, cSingle, `S${score}`, score);
+            drawLabel(startAngle + sectorAngle/2, R_DOUBLE + 25, score);
+        });
+        drawCircle(R_BULL_OUTER, 'area-green', 'B25', 25);
+        drawCircle(R_BULL_INNER, 'area-red', 'B50', 50);
+        updateUI(); updateActiveCard();
+    }
+    
+    function drawSector(s, e, ir, or, cls, id, val) {
+        const r1 = s*Math.PI/180, r2 = e*Math.PI/180;
+        const x1=ir*Math.cos(r1), y1=ir*Math.sin(r1), x2=or*Math.cos(r1), y2=or*Math.sin(r1);
+        const x3=or*Math.cos(r2), y3=or*Math.sin(r2), x4=ir*Math.cos(r2), y4=ir*Math.sin(r2);
+        const d = `M ${x1} ${y1} L ${x2} ${y2} A ${or} ${or} 0 0 1 ${x3} ${y3} L ${x4} ${y4} A ${ir} ${ir} 0 0 0 ${x1} ${y1} Z`;
+        const p = document.createElementNS("http://www.w3.org/2000/svg","path");
+        p.setAttribute("d",d); p.setAttribute("class",cls); p.setAttribute("data-id",id); p.setAttribute("data-score",val);
+        p.addEventListener('click', handleHit);
+        svg.appendChild(p);
+    }
+    function drawCircle(r, cls, id, val) {
+        const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+        c.setAttribute("cx",0); c.setAttribute("cy",0); c.setAttribute("r",r);
+        c.setAttribute("class",cls); c.setAttribute("data-id",id); c.setAttribute("data-score",val);
+        c.addEventListener('click', (e)=>{e.stopPropagation(); handleHit(e);});
+        svg.appendChild(c);
+    }
+    function drawLabel(angle, r, text) {
+        const rad = angle * Math.PI / 180;
+        const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+        t.setAttribute("x", r*Math.cos(rad)); t.setAttribute("y", r*Math.sin(rad));
+        t.setAttribute("class", "text-label"); t.textContent = text;
+        svg.appendChild(t);
+    }
+
+    createBoard();
+</script>
+</body>
+</html>
