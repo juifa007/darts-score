@@ -3,30 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>硬靶專業記分板 V10 (高對比清晰版)</title>
+    <title>硬靶專業記分板 V11 (手機滑動版)</title>
     <style>
-        /* === V10 高對比清晰配色 === */
+        /* === V11 手機友善版配色 === */
         :root {
-            --bg-color: #eef2f5;       /* 背景：冷色調淡灰 */
-            --panel-bg: #ffffff;       /* 面板：純白 */
-            --left-bg: #dfe4ea;        /* 左側靶面底色：稍微深一點的灰，襯托靶面 */
-            --text-main: #1a1a1a;      /* 主文字：近乎純黑 (清晰關鍵) */
-            --text-sub: #555555;       /* 次要文字：深灰 */
-            --p1-color: #007bff;       /* P1：鮮豔藍 */
-            --p2-color: #dc3545;       /* P2：鮮豔紅 */
+            --bg-color: #eef2f5;
+            --panel-bg: #ffffff;
+            --left-bg: #dfe4ea;
+            --text-main: #1a1a1a;
+            --text-sub: #555555;
+            --p1-color: #007bff;
+            --p2-color: #dc3545;
             --highlight: #007bff;      
-            --active-shadow: 0 10px 25px rgba(0,0,0,0.15); /* 強烈浮起感 */
+            --active-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
 
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg-color); color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow: hidden; user-select: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            /* 【關鍵修正】手機上允許滑動，防止內容被切掉 */
+            overflow: auto; 
+            -webkit-overflow-scrolling: touch; /* 讓 iOS 滑動更順暢 */
         }
         body { display: flex; flex-direction: column; }
         
-        #main-container { flex: 1; display: flex; overflow: hidden; }
+        #main-container { 
+            flex: 1; 
+            display: flex; 
+            /* 在電腦上不准超出邊界，但在手機上允許內容撐開 */
+            height: 100%; 
+        }
 
         /* 左側：靶面區 */
         #left-panel {
@@ -44,109 +51,47 @@
             display: flex; flex-direction: column; padding: 15px;
             box-shadow: -5px 0 20px rgba(0,0,0,0.05);
             z-index: 10;
+            overflow-y: auto; /* 允許右側獨立捲動 */
         }
 
-        /* === 選手卡片 (清晰化設計) === */
+        /* 卡片設計 */
         .player-card {
-            background: #f8f9fa; /* 預設為淺灰 (非活動狀態) */
-            border-radius: 12px;
-            padding: 10px 15px;
-            margin-bottom: 12px;
-            border: 2px solid #e9ecef; /* 預設淡邊框 */
-            opacity: 0.7; /* 非活動時稍微淡一點 */
-            transform: scale(0.98);
-            transition: all 0.25s ease-out;
-            position: relative;
+            background: #f8f9fa; border-radius: 12px; padding: 10px 15px; margin-bottom: 12px;
+            border: 2px solid #e9ecef; opacity: 0.7; transform: scale(0.99);
+            transition: all 0.25s ease-out; position: relative;
         }
-
-        /* 啟動狀態：純白底、深色字、粗邊框 */
-        .player-card.active {
-            opacity: 1;
-            background: #ffffff;
-            transform: scale(1.02);
-            z-index: 10;
-            border-width: 3px; /* 加粗邊框 */
-        }
+        .player-card.active { opacity: 1; background: #ffffff; transform: scale(1.01); z-index: 10; border-width: 3px; }
         .player-card.active-p1 { border-color: var(--p1-color); box-shadow: var(--active-shadow); }
         .player-card.active-p2 { border-color: var(--p2-color); box-shadow: var(--active-shadow); }
 
-        /* 投擲指標 (更明顯) */
-        .turn-indicator {
-            position: absolute; left: -35px; top: 40%;
-            font-size: 30px; display: none;
-            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2));
-        }
+        .turn-indicator { position: absolute; left: -30px; top: 40%; font-size: 28px; display: none; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); }
         .active .turn-indicator { display: block; animation: pointerMove 0.8s infinite alternate; }
         @keyframes pointerMove { from { transform: translateX(0); } to { transform: translateX(8px); } }
 
-        /* 選手標題 */
         .player-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .player-name { 
-            font-size: 1.5rem; font-weight: 900; color: var(--text-main); 
-            letter-spacing: -0.5px;
-        }
+        .player-name { font-size: 1.4rem; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px; }
         
-        /* 數據區 */
-        .stats-row { display: flex; gap: 8px; font-size: 0.95rem; margin-top: 5px; }
-        .stat-item { 
-            background: #e9ecef; padding: 4px 10px; border-radius: 6px; 
-            color: #444; font-weight: 600;
-        }
+        .stats-row { display: flex; gap: 8px; font-size: 0.9rem; margin-top: 5px; }
+        .stat-item { background: #e9ecef; padding: 4px 10px; border-radius: 6px; color: #444; font-weight: 600; }
         .stat-item span { color: #000; font-weight: 900; font-size: 1.1rem; }
         
-        .leg-badge { 
-            background: #ffc107; color: #000; font-size: 0.8rem; padding: 3px 8px; 
-            border-radius: 4px; visibility: hidden; font-weight: 800; margin-left: 8px; 
-            vertical-align: middle; box-shadow: 0 2px 2px rgba(0,0,0,0.1); 
-        }
+        .leg-badge { background: #ffc107; color: #000; font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; visibility: hidden; font-weight: 800; margin-left: 8px; vertical-align: middle; }
         .starter .leg-badge { visibility: visible; }
 
-        /* 3鏢顯示格 (高對比) */
-        .round-display {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #fff; 
-            padding: 8px 10px; border-radius: 8px; margin: 8px 0;
-            border: 2px solid #dde2e6;
-        }
-        .active .round-display { border-color: #ccc; background: #fdfdfd; }
-
+        .round-display { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 10px; border-radius: 8px; margin: 8px 0; border: 2px solid #dde2e6; }
         .dart-slots { display: flex; gap: 6px; }
-        .dart-slot {
-            width: 48px; height: 36px;
-            background: #fff; border: 2px solid #ced4da; border-radius: 6px;
-            display: flex; justify-content: center; align-items: center;
-            font-family: monospace; font-size: 1.2rem; color: #adb5bd; font-weight: bold;
-        }
-        /* 填入後變深色 */
-        .dart-slot.filled {
-            border-color: #333; color: #000; background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .dart-slot { width: 45px; height: 34px; background: #fff; border: 2px solid #ced4da; border-radius: 6px; display: flex; justify-content: center; align-items: center; font-family: monospace; font-size: 1.1rem; color: #adb5bd; font-weight: bold; }
+        .dart-slot.filled { border-color: #333; color: #000; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .round-total { color: #666; font-size: 0.9rem; font-weight: bold; }
         .round-total span { color: var(--p1-color); font-size: 1.4rem; font-weight: 900; margin-left: 5px; }
         .active-p2 .round-total span { color: var(--p2-color); }
 
-        /* 分數大字 (極致清晰) */
-        .score-big { 
-            font-size: 4.8rem; font-weight: 900; line-height: 0.9; 
-            text-align: right; color: #222; letter-spacing: -3px; 
-            margin-top: 5px;
-        }
+        .score-big { font-size: 4.5rem; font-weight: 900; line-height: 0.9; text-align: right; color: #222; letter-spacing: -3px; margin-top: 5px; }
 
-        /* LOGO 區 */
-        #logo-placeholder {
-            flex: 1; display: flex; justify-content: center; align-items: center;
-            margin: 10px 0; border: 2px dashed #cbd5e0; border-radius: 12px;
-            color: #a0aec0; font-weight: bold; letter-spacing: 1px; background: #f7fafc;
-        }
+        #logo-placeholder { flex: 1; min-height: 50px; display: flex; justify-content: center; align-items: center; margin: 10px 0; border: 2px dashed #cbd5e0; border-radius: 12px; color: #a0aec0; font-weight: bold; letter-spacing: 1px; background: #f7fafc; }
 
-        /* 按鈕區 */
-        #control-panel { height: 65px; display: grid; grid-template-columns: 1fr 2.5fr; gap: 12px; }
-        button {
-            border: none; border-radius: 10px; font-size: 1.3rem; font-weight: 800; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: all 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); /* 實體按鈕感 */
-        }
+        #control-panel { height: 65px; display: grid; grid-template-columns: 1fr 2.5fr; gap: 12px; margin-bottom: 20px; /* 手機底部留白 */ }
+        button { border: none; border-radius: 10px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
         button:active { transform: translateY(4px); box-shadow: none; }
         
         #btn-undo { background: #fff; color: #495057; border: 2px solid #ced4da; }
@@ -154,27 +99,42 @@
         #btn-next.ready { opacity: 1; pointer-events: all; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* 遮罩 */
-        #board-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.8); 
-            z-index: 100; display: none;
-            justify-content: center; align-items: center; flex-direction: column; text-align: center;
-        }
-        .overlay-text { color: #000; font-size: 3rem; font-weight: 900; }
+        #board-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); z-index: 100; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
+        .overlay-text { color: #000; font-size: 2.5rem; font-weight: 900; }
 
-        /* SVG 優化 */
         svg { max-width: 96%; max-height: 96%; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2)); }
         path, circle { cursor: pointer; stroke-linejoin: round; }
-        
-        /* 靶面高對比配色 */
-        .area-black { fill: #212529; stroke: #6c757d; stroke-width: 1.5px; } /* 深黑+深灰邊框 */
-        .area-white { fill: #f8f9fa; stroke: #6c757d; stroke-width: 1.5px; } /* 亮白+深灰邊框 */
-        .area-red { fill: #e02e42; stroke: #6c757d; stroke-width: 1.5px; } /* 飽和紅 */
-        .area-green { fill: #26a65b; stroke: #6c757d; stroke-width: 1.5px; } /* 飽和綠 */
+        .area-black { fill: #212529; stroke: #6c757d; stroke-width: 1.5px; }
+        .area-white { fill: #f8f9fa; stroke: #6c757d; stroke-width: 1.5px; }
+        .area-red { fill: #e02e42; stroke: #6c757d; stroke-width: 1.5px; }
+        .area-green { fill: #26a65b; stroke: #6c757d; stroke-width: 1.5px; }
         .text-label { font-size: 20px; font-weight: 900; fill: #fff; pointer-events: none; text-anchor: middle; dominant-baseline: middle; text-shadow: 0 0 3px rgba(0,0,0,0.8); }
 
-        @media (max-aspect-ratio: 1/1) { #main-container { flex-direction: column; } #right-panel { border-left: none; border-top: 2px solid #ccc; } }
+        /* === 關鍵修正：手機版直式佈局 (RWD) === */
+        @media (max-aspect-ratio: 1/1) { 
+            #main-container { 
+                flex-direction: column; 
+                height: auto; /* 手機上取消固定高度，允許內容長高 */
+                min-height: 100%;
+            } 
+            
+            #left-panel { 
+                height: 45vh; /* 靶面高度佔螢幕 45% */
+                min-height: 350px; /* 最小高度 */
+                flex: none; /* 取消 flex 比例，改用固定高度 */
+            }
+
+            #right-panel { 
+                flex: none; /* 取消 flex 比例 */
+                border-left: none; 
+                border-top: 2px solid #ccc; 
+                padding-bottom: 50px; /* 底部多留白，防止被手機導航列擋住 */
+            }
+            
+            .turn-indicator {
+                left: -25px; font-size: 24px; /* 手機上指標改小一點 */
+            }
+        }
     </style>
 </head>
 <body>
@@ -184,15 +144,14 @@
             <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
             <div id="board-overlay">
                 <div class="overlay-text">請核對分數</div>
-                <div style="font-size:1.5rem; color:#555; font-weight:bold; margin-top:10px;">並按下換人鍵</div>
+                <div style="font-size:1.2rem; color:#555; font-weight:bold; margin-top:10px;">並按下換人鍵</div>
             </div>
         </div>
 
         <div id="right-panel">
             
             <div class="player-card active active-p1" id="p1-card">
-                <div class="turn-indicator">🎯</div>
-                <div class="player-header">
+                <div class="turn-indicator">👉</div> <div class="player-header">
                     <div class="player-name">Player 1 <span class="leg-badge">先攻</span></div>
                     <div class="stats-row">
                         <div class="stat-item">PPD: <span id="p1-avg">0.0</span></div>
@@ -209,7 +168,7 @@
             </div>
 
             <div class="player-card" id="p2-card">
-                <div class="turn-indicator">🎯</div>
+                <div class="turn-indicator">👉</div>
                 <div class="player-header">
                     <div class="player-name">Player 2 <span class="leg-badge">先攻</span></div>
                     <div class="stats-row">
@@ -240,7 +199,6 @@
     </div>
 
 <script>
-    // === 遊戲邏輯 (保持 V9 完整功能) ===
     const GAME_MODE = 501;
     let currentPlayer = 1, legStarter = 1, turnDarts = 0, isBoardLocked = false;
     let players = { 1: { score: GAME_MODE, legs: 0, roundHistory: [], matchPoints: 0, matchDarts: 0 }, 2: { score: GAME_MODE, legs: 0, roundHistory: [], matchPoints: 0, matchDarts: 0 } };
@@ -388,5 +346,4 @@
     createBoard();
 </script>
 </body>
-
 </html>
