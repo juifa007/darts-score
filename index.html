@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>硬靶專業記分板 V57 (職業報分 Caller 版)</title>
+    <title>硬靶專業記分板 V60 (排版終極修復版)</title>
     <style>
         /* === 基礎樣式 === */
         :root {
@@ -19,7 +19,7 @@
         #left-panel { flex: 6; display: flex; justify-content: center; align-items: center; background: var(--left-bg); border-right: 1px solid #ccc; position: relative; }
         #right-panel { flex: 4; background: var(--panel-bg); padding: 15px; display: flex; flex-direction: column; box-shadow: -5px 0 20px rgba(0,0,0,0.05); z-index: 10; overflow-y: auto; }
 
-        /* 按鈕與卡片 */
+        /* UI 元件 */
         #bracket-btn { width: 100%; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; gap: 8px; }
         .player-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 10px; margin-bottom: 12px; opacity: 0.7; transition: all 0.2s; position: relative; }
         .player-card.active { opacity: 1; background: #fff; border-width: 3px; transform: scale(1.01); }
@@ -36,25 +36,15 @@
         .score-big { font-size: 4.5rem; font-weight: 900; text-align: right; line-height: 1; margin: 5px 0; }
         .round-display { font-size: 1.1rem; font-weight: bold; color: #666; text-align: right; display: flex; justify-content: space-between; align-items: center; padding-top: 5px; border-top: 1px solid #eee; }
         
-        /* V56 Avg Badge */
         .stat-badge { background: #e9ecef; padding: 2px 8px; border-radius: 4px; font-size: 0.9rem; color: #555; }
         .active .stat-badge { background: #343a40; color: #fff; }
 
-        /* V57 Turn Score Badge (Caller Display) */
-        .turn-score-box { 
-            text-align: center; font-size: 1.4rem; font-weight: 900; 
-            margin: 8px 0; padding: 5px; 
-            background: #f1f3f5; border-radius: 8px; color: #adb5bd;
-            border: 2px dashed #dee2e6;
-        }
-        .active .turn-score-box { 
-            background: #e7f5ff; color: #007bff; border: 2px solid #007bff; 
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .active-p2.active .turn-score-box { 
-            background: #fff5f5; color: #dc3545; border-color: #dc3545; 
-        }
+        .turn-score-box { text-align: center; font-size: 1.4rem; font-weight: 900; margin: 8px 0; padding: 5px; background: #f1f3f5; border-radius: 8px; color: #adb5bd; border: 2px dashed #dee2e6; }
+        .active .turn-score-box { background: #e7f5ff; color: #007bff; border: 2px solid #007bff; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .active-p2.active .turn-score-box { background: #fff5f5; color: #dc3545; border-color: #dc3545; }
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .checkout-hint { font-size: 0.9rem; color: #28a745; font-weight: bold; text-align: right; min-height: 1.2em; }
 
         #control-panel { height: 60px; display: grid; grid-template-columns: 1fr 2.5fr; gap: 12px; margin-top: auto; }
         button { border: none; border-radius: 10px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
@@ -69,7 +59,7 @@
         #board-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); z-index: 100; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
         .overlay-text { color: #000; font-size: 2.5rem; font-weight: 900; }
 
-        /* === 賽程視窗 === */
+        /* === 賽程視窗與分頁 === */
         #bracket-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #f0f2f5; z-index: 200; display: none; flex-direction: column; }
         #bracket-header { height: 100px; background: #fff; border-bottom: 1px solid #ccc; display: flex; flex-direction: column; }
         .header-top { height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #eee; }
@@ -77,22 +67,34 @@
         .view-tab { padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; border: 1px solid transparent; color: #666; transition: all 0.2s; }
         .view-tab.active-tab { background: #007bff; color: white; box-shadow: 0 2px 5px rgba(0,123,255,0.3); }
         .view-tab:hover:not(.active-tab) { background: #e9ecef; }
+        
         #bracket-content { flex: 1; overflow: auto; position: relative; background: #f8f9fa; }
+        
+        /* 容器排版控制 (關鍵修正) */
         #bracket-scroll-view { position: relative; padding: 40px; box-sizing: border-box; }
+        
+        /* 單淘汰：水平排列 (Flex) - 適用於 Canvas 模式 */
         .layout-canvas #bracket-scroll-view { width: max-content; height: max-content; }
+        .layout-canvas .bracket-container { display: flex; gap: 80px; }
+
+        /* 循環賽：網格排列 (Block) - 適用於 Grid 模式 */
         .layout-grid #bracket-scroll-view { width: 100%; height: auto; }
+        .layout-grid .bracket-container { display: block; width: 100%; } /* V60 修復：強制區塊顯示 */
+
         .view-section { display: none; }
         .view-section.active-view { display: block; }
+
         #bracket-lines { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; }
         .connector-path { fill: none; stroke: var(--line-color); stroke-width: var(--line-width); shape-rendering: crispEdges; }
         .header-controls { display: flex; gap: 8px; align-items: center; }
         .control-select { padding: 5px; font-size: 0.9rem; border: 2px solid #007bff; border-radius: 5px; color: #007bff; font-weight: bold; cursor: pointer; }
 
-        /* 單淘汰 */
-        .bracket-container { display: flex; gap: 80px; position: relative; z-index: 2; margin-bottom: 40px; }
+        /* 單淘汰元件 */
+        .bracket-container { position: relative; z-index: 2; margin-bottom: 40px; }
         .round-column { display: flex; flex-direction: column; justify-content: space-around; padding-top: 50px; position: relative; }
         .round-header { position: absolute; top: 0; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 5px; align-items: center; }
         .round-title { font-weight: bold; color: #555; font-size: 1rem; }
+        
         .match-card { background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 8px; margin: 20px 0; width: 180px; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: auto; transition: width 0.3s; }
         .match-card:hover { border-color: #007bff; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,123,255,0.2); }
         .match-card.card-wide-2 { width: 260px !important; }
@@ -109,8 +111,16 @@
         .status-playing { background: #ffc107; color: #333; }
         .status-finished { background: #007bff; color: white; }
 
-        /* 循環賽 */
-        .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0; width: 100%; box-sizing: border-box; }
+        /* 循環賽表格 (Grid Layout) */
+        .group-grid { 
+            display: grid; 
+            /* 智慧填滿：每個格子至少 320px，空間夠就自動並排 */
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+            gap: 20px; 
+            padding: 0;
+            width: 100%; 
+            box-sizing: border-box;
+        }
         .group-box { background: #fff; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .group-header { background: #343a40; color: #fff; padding: 8px 15px; font-weight: bold; display: flex; justify-content: space-between; }
         .group-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -122,11 +132,12 @@
         .group-team-block { display: flex; flex-direction: column; gap: 2px; }
         .group-roster { display: flex; gap: 2px; }
         .group-roster input { border: 1px dashed #ccc; border-radius: 3px; font-size: 0.75rem; padding: 2px; width: 100%; color: #666; font-weight: normal; }
+        
         #knockout-btn-area { width: 100%; text-align: center; margin: 30px 0; padding-bottom: 20px; }
         .btn-advance { background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 15px 40px; border-radius: 30px; font-size: 1.2rem; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4); border: none; cursor: pointer; font-weight: bold; transition: transform 0.2s; }
         .btn-advance:hover { transform: scale(1.05); }
 
-        /* Schedule */
+        /* Schedule List */
         #schedule-container { margin: 0; background: #fff; border: 2px solid #007bff; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); padding: 0; overflow: hidden; width: 100%; box-sizing: border-box; }
         .schedule-title { background: #007bff; color: white; padding: 10px 15px; font-size: 1.2rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .schedule-table { width: 100%; border-collapse: collapse; }
@@ -229,6 +240,7 @@
                 <div class="dart-slots" id="p1-slots"><div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div></div>
                 <div class="turn-score-box">Turn: <span id="p1-turn-score">0</span></div>
                 <div class="score-big" id="p1-score">501</div>
+                <div class="checkout-hint" id="p1-hint"></div>
                 <div class="round-display">
                     <span>Legs: <span id="p1-legs">0</span></span>
                     <span class="stat-badge">Avg: <span id="p1-avg">0.00</span></span>
@@ -239,6 +251,7 @@
                 <div class="dart-slots" id="p2-slots"><div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div></div>
                 <div class="turn-score-box">Turn: <span id="p2-turn-score">0</span></div>
                 <div class="score-big" id="p2-score">501</div>
+                <div class="checkout-hint" id="p2-hint"></div>
                 <div class="round-display">
                     <span>Legs: <span id="p2-legs">0</span></span>
                     <span class="stat-badge">Avg: <span id="p2-avg">0.00</span></span>
@@ -255,7 +268,7 @@
 <script>
     window.addEventListener('beforeunload', function (e) { e.preventDefault(); e.returnValue = ''; });
 
-    const STORAGE_KEY = 'dart_scorer_v57_data';
+    const STORAGE_KEY = 'dart_scorer_v60_data';
     let TOTAL_PLAYERS = 8;
     let TEAM_SIZE = 1; 
     let CURRENT_FORMAT = 'SINGLE_ELIM';
@@ -264,12 +277,12 @@
     let targetLegs = 3;
 
     let players = {
-        1: { score: 501, legs: 0, roundHistory: [], totalScore: 0, totalDarts: 0 }, 
-        2: { score: 501, legs: 0, roundHistory: [], totalScore: 0, totalDarts: 0 }
+        1: { score: 501, legs: 0, roundHistory: [], totalScore: 0, totalDarts: 0, turnScore: 0 }, 
+        2: { score: 501, legs: 0, roundHistory: [], totalScore: 0, totalDarts: 0, turnScore: 0 }
     };
     let currentPlayer = 1, legStarter = 1, turnDarts = 0, isBoardLocked = false;
 
-    // === View & Layout ===
+    // === View & Layout Control (V60 FIX) ===
     function switchView(viewName) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
         document.querySelectorAll('.view-tab').forEach(el => el.classList.remove('active-tab'));
@@ -281,11 +294,13 @@
     
     function updateLayoutClass(viewName) {
         const modal = document.getElementById('bracket-modal');
-        modal.classList.remove('mode-tree', 'mode-grid');
+        // V60 Fix: 使用一致的 class 名稱 layout-grid / layout-canvas
+        modal.classList.remove('layout-canvas', 'layout-grid');
+        
         if (viewName === 'schedule' || CURRENT_FORMAT === 'ROUND_ROBIN') {
-            modal.classList.add('mode-grid');
+            modal.classList.add('layout-grid');
         } else {
-            modal.classList.add('mode-tree');
+            modal.classList.add('layout-canvas');
         }
     }
 
@@ -668,8 +683,13 @@
             players[1].legs = m.p1score;
             players[2].legs = m.p2score;
             players[1].roundHistory = []; players[2].roundHistory = [];
-            turnDarts = 0; isBoardLocked = false; currentPlayer = 1; legStarter = 1;
             
+            // V57: Reset Turn Scores
+            players[1].turnScore = 0; players[2].turnScore = 0;
+            document.getElementById('p1-turn-score').innerText = 0;
+            document.getElementById('p2-turn-score').innerText = 0;
+
+            turnDarts = 0; isBoardLocked = false; currentPlayer = 1; legStarter = 1;
             players[1].totalScore = 0; players[1].totalDarts = 0;
             players[2].totalScore = 0; players[2].totalDarts = 0;
 
@@ -717,11 +737,13 @@
     function incVal(id) { const el = document.getElementById(id); if(el) el.value = parseInt(el.value) + 1; }
     function getGroupPlayerName(g, pIdx) { const el = document.getElementById(`g${g}-p${pIdx}-name`); return el ? el.value : `P${pIdx+1}`; }
     
-    // === V56+V57: Dart Logic ===
+    // === V59: Double Out Logic ===
     function handleHit(e) {
         if (isBoardLocked) return;
+        
         const scoreHit = parseInt(e.target.getAttribute("data-score"));
         const hitId = e.target.getAttribute("data-id") || scoreHit;
+        
         const midAngle = parseFloat(e.target.getAttribute("data-angle"));
         const midRadius = parseFloat(e.target.getAttribute("data-radius"));
         const isBull = (hitId === 'B50' || hitId === 'B25');
@@ -741,11 +763,39 @@
         addDartMarker(finalRadius * Math.cos(radian), finalRadius * Math.sin(radian), turnDarts + 1, 4);
 
         const p = players[currentPlayer];
-        if (p.score - scoreHit < 0 || p.score - scoreHit === 1) { alert("爆鏢!"); lockBoard(); return; }
+        const remaining = p.score - scoreHit;
+
+        // V59: Double Out Logic
+        if (remaining < 0 || remaining === 1) { 
+            alert("爆鏢 (Bust)!"); 
+            revertTurn(p); 
+            lockBoard(); 
+            return; 
+        }
+
+        if (remaining === 0) {
+            const isDouble = (hitId.startsWith && hitId.startsWith('D')) || hitId === 'B50';
+            if (!isDouble) {
+                alert("未雙倍結標 (No Double)! 爆鏢。");
+                revertTurn(p);
+                lockBoard();
+                return;
+            } else {
+                p.score = 0;
+                p.totalScore += scoreHit;
+                p.totalDarts++;
+                let h = { id: hitId, score: scoreHit, player: currentPlayer, turnIndex: turnDarts };
+                p.roundHistory.push(h);
+                
+                updateUI();
+                setTimeout(() => { alert("Game Shot!"); handleLegWin(currentPlayer); }, 100);
+                return;
+            }
+        }
         
-        p.score -= scoreHit; turnDarts++;
+        p.score -= scoreHit; 
+        turnDarts++;
         
-        // Stats
         p.totalScore += scoreHit;
         p.totalDarts++;
 
@@ -753,8 +803,16 @@
         p.roundHistory.push(h); 
         
         updateUI(); saveGameData(); 
-        if (p.score === 0) { setTimeout(() => { alert("Wins Leg!"); handleLegWin(currentPlayer); }, 100); return; }
         if (turnDarts >= 3) lockBoard();
+    }
+
+    function revertTurn(p) {
+        let turnGain = 0;
+        for(let i=0; i<turnDarts; i++) {
+            let shot = p.roundHistory[p.roundHistory.length - 1 - i];
+            turnGain += shot.score;
+        }
+        p.score += turnGain; 
     }
 
     function handleMiss() {
@@ -762,7 +820,6 @@
         const p = players[currentPlayer];
         turnDarts++;
         p.totalDarts++;
-        
         let h = { id: 'Miss', score: 0, player: currentPlayer, turnIndex: turnDarts };
         p.roundHistory.push(h); 
         updateUI(); saveGameData(); 
@@ -772,14 +829,11 @@
     function undoLastDart() { 
         const p = players[currentPlayer];
         if(p.roundHistory.length === 0) return; 
-        
         const last = p.roundHistory.pop(); 
         p.score += last.score; 
         turnDarts--; isBoardLocked = false; 
-        
         p.totalScore -= last.score;
         p.totalDarts--;
-
         if (last.id !== 'Miss') {
             if(turnHitCounts[last.id] > 0) turnHitCounts[last.id]--;
             const lastMarker = markers.pop();
@@ -795,26 +849,43 @@
         document.getElementById('p2-legs').innerText = players[2].legs; 
         updateSlots(1); updateSlots(2);
         
-        calcPPR(1);
-        calcPPR(2);
+        calcPPR(1); calcPPR(2);
         
-        // V57: Calculate current turn score dynamically from history
         let currentTurnScore = getTurnScore(currentPlayer);
         document.getElementById(`p${currentPlayer}-turn-score`).innerText = currentTurnScore;
-        // Reset the other player's display
         let otherPid = (currentPlayer===1)?2:1;
         document.getElementById(`p${otherPid}-turn-score`).innerText = "0";
+
+        // V59: Update Checkout Hint
+        updateCheckoutHint(1);
+        updateCheckoutHint(2);
 
         const overlay = document.getElementById('board-overlay');
         const btnNext = document.getElementById('btn-next');
         if(isBoardLocked) { overlay.style.display = 'flex'; btnNext.classList.add('ready'); } else { overlay.style.display = 'none'; btnNext.classList.remove('ready'); } 
     }
 
+    // V59: Checkout Table (Simple)
+    const CHECKOUTS = {
+        170: "T20 T20 Bull", 167: "T20 T19 Bull", 164: "T20 T18 Bull", 161: "T20 T17 Bull", 160: "T20 T20 D20",
+        158: "T20 T20 D19", 156: "T20 T20 D18", 150: "T20 T18 D18", 140: "T20 T20 D10", 130: "T20 T20 D5",
+        121: "T20 T11 D14", 120: "T20 S20 D20", 110: "T20 S10 D20", 100: "T20 D20", 
+        60: "S20 D20", 50: "S10 D20", 40: "D20", 36: "D18", 32: "D16", 16: "D8", 8: "D4", 4: "D2", 2: "D1"
+    };
+    function updateCheckoutHint(pid) {
+        const score = players[pid].score;
+        let hint = "";
+        if (score <= 170) {
+            if (CHECKOUTS[score]) hint = CHECKOUTS[score];
+            else if (score <= 40 && score % 2 === 0) hint = "D" + (score/2);
+        }
+        document.getElementById(`p${pid}-hint`).innerText = hint;
+    }
+
     function getTurnScore(pid) {
         const p = players[pid];
         let total = 0;
-        // Sum up the last `turnDarts` entries
-        let count = turnDarts; // global tracker
+        let count = turnDarts;
         if(count > 0) {
             for(let i=0; i<count; i++) {
                 let idx = p.roundHistory.length - 1 - i;
@@ -843,7 +914,11 @@
             legStarter = (winner===1)?2:1; currentPlayer = legStarter;
             players[1].score = 501; players[2].score = 501;
             players[1].roundHistory = []; players[2].roundHistory = [];
+            
+            // V59: Reset Turn Stats for new leg
+            players[1].turnScore = 0; players[2].turnScore = 0;
             turnDarts = 0; isBoardLocked = false;
+            
             clearMarkers();
             updateUI(); updateActiveCard();
             saveGameData();
