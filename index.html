@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>硬靶專業記分板 V27 (防手滑+修復版)</title>
+    <title>硬靶專業記分板 V46 (標準框架修正版)</title>
     <style>
-        /* === V27 樣式 === */
+        /* === V46 樣式 === */
         :root {
             --bg-color: #eef2f5; --panel-bg: #ffffff; --left-bg: #dfe4ea;
             --text-main: #1a1a1a; --text-sub: #555555;
@@ -16,45 +16,30 @@
         body { display: flex; flex-direction: column; }
         #main-container { flex: 1; display: flex; height: 100%; overflow: hidden; }
         
-        /* 左側靶面區 */
         #left-panel { flex: 6; display: flex; justify-content: center; align-items: center; background: var(--left-bg); border-right: 1px solid #ccc; position: relative; }
-        
-        /* 右側控制區 */
-        #right-panel { 
-            flex: 4; background: var(--panel-bg); padding: 15px; 
-            display: flex; flex-direction: column; 
-            box-shadow: -5px 0 20px rgba(0,0,0,0.05); z-index: 10; overflow-y: auto; 
-        }
+        #right-panel { flex: 4; background: var(--panel-bg); padding: 15px; display: flex; flex-direction: column; box-shadow: -5px 0 20px rgba(0,0,0,0.05); z-index: 10; overflow-y: auto; }
 
-        /* 按鈕與卡片 UI */
+        /* UI */
         #bracket-btn { width: 100%; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; gap: 8px; }
         .player-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 10px; margin-bottom: 12px; opacity: 0.7; transition: all 0.2s; position: relative; }
         .player-card.active { opacity: 1; background: #fff; border-width: 3px; transform: scale(1.01); }
         .player-card.active-p1 { border-color: var(--p1-color); } .player-card.active-p2 { border-color: var(--p2-color); }
         
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .player-name { font-size: 1.4rem; font-weight: 900; }
+        .player-name { font-size: 1.3rem; font-weight: 900; white-space: pre-wrap; line-height: 1.2; word-break: break-word; }
+        
         .turn-indicator { font-size: 1.5rem; visibility: hidden; }
         .active .turn-indicator { visibility: visible; }
 
-        /* V27 加回來的單鏢分數格 */
         .dart-slots { display: flex; gap: 5px; margin-bottom: 5px; height: 30px; }
-        .dart-slot { 
-            flex: 1; background: #fff; border: 1px solid #ccc; border-radius: 4px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-weight: bold; color: #555; font-size: 1rem;
-        }
+        .dart-slot { flex: 1; background: #fff; border: 1px solid #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; font-size: 1rem; }
         .dart-slot.filled { color: #000; border-color: #333; background: #e9ecef; }
+        .dart-slot.miss { color: #dc3545; background: #fff0f0; border-color: #dc3545; }
 
         .score-big { font-size: 4.5rem; font-weight: 900; text-align: right; line-height: 1; margin: 5px 0; }
         .round-display { font-size: 1.1rem; font-weight: bold; color: #666; text-align: right; }
         
-        #logo-placeholder {
-            flex-grow: 1; display: flex; justify-content: center; align-items: center;
-            border: 2px dashed #e0e0e0; border-radius: 12px;
-            margin: 15px 0; color: #ccc; font-weight: bold; letter-spacing: 1px;
-            min-height: 100px;
-        }
+        #logo-placeholder { flex-grow: 1; display: flex; justify-content: center; align-items: center; border: 2px dashed #e0e0e0; border-radius: 12px; margin: 15px 0; color: #ccc; font-weight: bold; letter-spacing: 1px; min-height: 100px; }
 
         #control-panel { height: 60px; display: grid; grid-template-columns: 1fr 2.5fr; gap: 12px; margin-top: auto; }
         button { border: none; border-radius: 10px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
@@ -63,6 +48,17 @@
         #btn-next { background: #007bff; color: #fff; opacity: 0.5; pointer-events: none; }
         #btn-next.ready { opacity: 1; pointer-events: all; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+        #btn-miss-trigger {
+            position: absolute; bottom: 20px; left: 20px; z-index: 50;
+            background: #dc3545; color: white; width: 80px; height: 80px;
+            border-radius: 50%; font-size: 1rem; font-weight: 900;
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
+            cursor: pointer; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center;
+            border: 4px solid white;
+        }
+        #btn-miss-trigger:active { transform: scale(0.95); }
 
         #board-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); z-index: 100; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
         .overlay-text { color: #000; font-size: 2.5rem; font-weight: 900; }
@@ -75,45 +71,108 @@
         #bracket-lines { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; }
         .connector-path { fill: none; stroke: var(--line-color); stroke-width: var(--line-width); shape-rendering: crispEdges; }
         .bracket-container { display: flex; gap: 80px; position: relative; z-index: 2; }
-        .round-column { display: flex; flex-direction: column; justify-content: space-around; min-width: 180px; padding-top: 50px; position: relative; }
+        .round-column { display: flex; flex-direction: column; justify-content: space-around; padding-top: 50px; position: relative; }
         .round-header { position: absolute; top: 0; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 5px; align-items: center; }
         .round-title { font-weight: bold; color: #555; font-size: 1rem; }
         .format-select { padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.8rem; color: #007bff; font-weight: bold; cursor: pointer; background: #fff; }
-        .match-card { background: #fff; border: 1px solid #ccc; border-radius: 6px; width: 180px; padding: 8px; margin: 10px 0; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: 90px; }
+        
+        /* 預設卡片樣式 (最小框架 180px) */
+        .match-card { 
+            background: #fff; border: 1px solid #ccc; border-radius: 6px; 
+            padding: 8px; margin: 20px 0; 
+            width: 180px; /* 固定最小寬度 */
+            cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+            height: auto; 
+            transition: width 0.3s;
+        }
         .match-card:hover { border-color: #007bff; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,123,255,0.2); }
-        .match-label { font-size: 0.75rem; color: #007bff; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between; }
-        .bracket-input { width: 95%; border: none; border-bottom: 1px solid #eee; font-size: 0.9rem; padding: 2px; text-align: center; background: transparent; }
-        .bracket-input:focus { outline: none; border-bottom: 2px solid #007bff; background: #f0f8ff; }
-        .vs-text { font-size: 0.7rem; color: #ccc; text-align: center; margin: 2px 0; }
-        .compact-mode .match-card { height: 50px; margin: 6px 0; padding: 4px 8px; width: 160px; }
-        .compact-mode .bracket-input { font-size: 0.8rem; border-bottom: none; text-align: left; }
+        .match-label { font-size: 0.75rem; color: #007bff; font-weight: bold; margin-bottom: 2px; display: flex; justify-content: space-between; padding: 0 2px; }
+        
+        /* 只有第一輪會變寬 */
+        .match-card.card-wide-2 { width: 260px !important; }
+        .match-card.card-wide-4 { width: 480px !important; }
+        
+        /* V46: 欄寬設定 */
+        .mode-single .round-column { min-width: 180px; } 
+        .mode-double .round-column { min-width: 180px; } /* 預設回歸小框 */
+        .mode-team .round-column { min-width: 180px; }   /* 預設回歸小框 */
+        
+        /* 特別指定第一輪的欄寬 */
+        .mode-double #round-0 { min-width: 260px; }
+        .mode-team #round-0 { min-width: 480px; }
+
+        /* V46: 嚴格區分輸入框樣式 */
+        
+        /* 1. 標準輸入框 (Round 2+) */
+        .bracket-input { 
+            width: 100%; box-sizing: border-box; 
+            border: none; border-bottom: 1px solid #eee; 
+            font-size: 16px; padding: 4px; text-align: left; 
+            background: transparent; 
+            white-space: nowrap; overflow: hidden; 
+        }
+        .bracket-input:focus { outline: none; border-bottom: 2px solid #007bff; background: #fff; }
+
+        /* 2. 隊名專用 (Round 1 專用) */
+        .team-name-input { 
+            width: 100%; border: none; border-bottom: 1px solid #007bff; 
+            font-size: 0.9rem; font-weight: 800; color: #000;
+            padding: 2px 4px; background: #f0f8ff; 
+            box-sizing: border-box; text-align: left;
+        }
+        .team-name-input:focus { outline: none; background: #e0f0ff; }
+
+        .team-block { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; border: 1px solid #eee; padding: 4px; border-radius: 4px; background: #fcfcfc; }
+        .roster-row { display: flex; width: 100%; gap: 4px; margin-top: 2px; }
+        .player-input { flex: 1; border: 1px dashed #ccc; border-radius: 3px; font-size: 0.8rem; padding: 3px; text-align: center; background: #fff; min-width: 0; }
+        .player-input:focus { outline: none; border: 1px solid #007bff; }
+        
+        .vs-text { font-size: 0.65rem; color: #ccc; text-align: center; margin: 1px 0; font-weight: bold;}
+        .compact-mode .match-card { margin: 10px 0; padding: 4px; }
+        .compact-mode .team-name-input { font-size: 0.8rem; padding: 1px; }
+        .compact-mode .player-input { font-size: 0.7rem; padding: 1px; }
         .compact-mode .vs-text { display: none; }
-        .compact-mode .match-label { font-size: 0.65rem; margin-bottom: 0; }
         .compact-mode .load-badge { display: none; }
         .load-badge { background: #007bff; color: white; padding: 1px 4px; border-radius: 3px; font-size: 0.6rem; }
-        #size-selector { padding: 5px; font-size: 1rem; border: 2px solid #007bff; border-radius: 5px; color: #007bff; font-weight: bold; }
+        .header-controls { display: flex; gap: 8px; align-items: center; }
+        .control-select { padding: 5px; font-size: 0.9rem; border: 2px solid #007bff; border-radius: 5px; color: #007bff; font-weight: bold; cursor: pointer; }
 
-        /* Darts Board CSS */
         svg#dartboard { max-width: 90%; max-height: 90%; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2)); }
         .area-black { fill: #212529; stroke: #6c757d; } .area-white { fill: #f8f9fa; stroke: #6c757d; }
         .area-red { fill: #e02e42; stroke: #6c757d; } .area-green { fill: #26a65b; stroke: #6c757d; }
         .text-label { font-size: 24px; font-weight: 900; fill: #fff; pointer-events: none; text-anchor: middle; dominant-baseline: central; alignment-baseline: central; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
+        
+        .dart-marker { 
+            pointer-events: none; stroke: #fff; stroke-width: 1px;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+            transition: all 0.15s ease-out;
+            transform-box: fill-box; transform-origin: center;
+        }
+        .dart-marker-1 { fill: #dc3545; } 
+        .dart-marker-2 { fill: #28a745; } 
+        .dart-marker-3 { fill: #007bff; } 
     </style>
 </head>
 <body>
 
     <div id="bracket-modal">
         <div id="bracket-header">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <select id="size-selector" onchange="changeBracketSize()">
-                    <option value="4">4人 (Semi)</option>
-                    <option value="8" selected>8人 (Quarter)</option>
-                    <option value="16">16人 (Last 16)</option>
-                    <option value="32">32人 (Last 32)</option>
-                    <option value="64">64人 (緊湊)</option>
-                    <option value="128">128人 (超緊湊)</option>
+            <div class="header-controls">
+                <select id="mode-selector" class="control-select" onchange="changeBracketMode()">
+                    <option value="1">1v1 單人</option>
+                    <option value="2">2v2 雙人</option>
+                    <option value="4">4v4 團體</option>
                 </select>
-                <span style="font-weight:bold; color:#555;">賽程表</span>
+                <select id="size-selector" class="control-select" onchange="changeBracketSize()">
+                    <option value="4">4組</option>
+                    <option value="8" selected>8組</option>
+                    <option value="16">16組</option>
+                    <option value="32">32組</option>
+                    <option value="64">64組</option>
+                    <option value="128">128組</option>
+                </select>
+                <span style="font-weight:bold; color:#555; margin-left:5px;">賽程</span>
             </div>
             <button id="close-bracket" onclick="closeBracket()" style="padding:5px 15px; cursor:pointer;">關閉</button>
         </div>
@@ -121,7 +180,7 @@
         <div id="bracket-content">
             <div id="bracket-scroll-view">
                 <svg id="bracket-lines"></svg>
-                <div id="bracket-container" class="bracket-container"></div>
+                <div id="bracket-container" class="bracket-container mode-single"></div>
             </div>
         </div>
     </div>
@@ -129,6 +188,7 @@
     <div id="main-container">
         <div id="left-panel">
             <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
+            <button id="btn-miss-trigger" onclick="handleMiss()"><div>MISS</div><div style="font-size:0.8rem">脫靶</div></button>
             <div id="board-overlay">
                 <div class="overlay-text">請核對分數</div>
                 <div style="font-size:1.2rem; color:#555; font-weight:bold; margin-top:10px;">並按下換人鍵</div>
@@ -137,35 +197,19 @@
 
         <div id="right-panel">
             <button id="bracket-btn" onclick="openBracket()">賽程表 / 輸入名單</button>
-            
             <div class="player-card active active-p1" id="p1-card">
-                <div class="player-header">
-                    <div class="turn-indicator">👉</div>
-                    <div class="player-name" id="p1-name">Player 1</div>
-                </div>
-                <div class="dart-slots" id="p1-slots">
-                    <div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div>
-                </div>
+                <div class="player-header"><div class="turn-indicator">👉</div><div class="player-name" id="p1-name">Player 1</div></div>
+                <div class="dart-slots" id="p1-slots"><div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div></div>
                 <div class="score-big" id="p1-score">501</div>
                 <div class="round-display">Legs: <span id="p1-legs">0</span></div>
             </div>
-            
             <div class="player-card" id="p2-card">
-                <div class="player-header">
-                    <div class="turn-indicator">👉</div>
-                    <div class="player-name" id="p2-name">Player 2</div>
-                </div>
-                <div class="dart-slots" id="p2-slots">
-                    <div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div>
-                </div>
+                <div class="player-header"><div class="turn-indicator">👉</div><div class="player-name" id="p2-name">Player 2</div></div>
+                <div class="dart-slots" id="p2-slots"><div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div></div>
                 <div class="score-big" id="p2-score">501</div>
                 <div class="round-display">Legs: <span id="p2-legs">0</span></div>
             </div>
-
-            <div id="logo-placeholder">
-                LOGO / 賽事名稱
-            </div>
-
+            <div id="logo-placeholder">LOGO / 賽事名稱</div>
             <div id="control-panel">
                 <button id="btn-undo" onclick="undoLastDart()">復原</button>
                 <button id="btn-next" onclick="switchPlayer()">換下一位 (NEXT)</button>
@@ -174,25 +218,48 @@
     </div>
 
 <script>
-    // === V27 新增：防止 F5 刷新 ===
-    window.addEventListener('beforeunload', function (e) {
-        // 大多數瀏覽器需要這兩行來觸發提示
-        e.preventDefault();
-        e.returnValue = '';
-    });
+    window.addEventListener('beforeunload', function (e) { e.preventDefault(); e.returnValue = ''; });
 
     let TOTAL_PLAYERS = 8;
+    let TEAM_SIZE = 1; 
     let matchesData = {};
 
     function changeBracketSize() {
         const val = document.getElementById('size-selector').value;
         TOTAL_PLAYERS = parseInt(val);
+        updateContainerMode();
+        if(confirm(`確定切換為 ${TOTAL_PLAYERS} 組？(賽程將重置)`)) initBracketStructure();
+    }
+
+    function changeBracketMode() {
+        const val = document.getElementById('mode-selector').value;
+        TEAM_SIZE = parseInt(val);
+        updateContainerMode();
+        if(confirm(`確定切換為 ${getModeName()} 賽制？(賽程將重置)`)) initBracketStructure();
+    }
+
+    function getModeName() {
+        if(TEAM_SIZE === 2) return '雙人 (2v2)';
+        if(TEAM_SIZE === 4) return '團體 (4v4)';
+        return '單人 (1v1)';
+    }
+
+    function updateContainerMode() {
         const container = document.getElementById('bracket-container');
+        container.classList.remove('mode-single', 'mode-double', 'mode-team');
+        if(TEAM_SIZE === 1) container.classList.add('mode-single');
+        if(TEAM_SIZE === 2) container.classList.add('mode-double');
+        if(TEAM_SIZE === 4) container.classList.add('mode-team');
         if(TOTAL_PLAYERS >= 64) container.classList.add('compact-mode');
         else container.classList.remove('compact-mode');
-        
-        if(confirm(`確定切換為 ${TOTAL_PLAYERS} 人制？(賽程將重置)`)) {
-            initBracketStructure();
+    }
+
+    function autoFitText(el) {
+        const maxFontSize = 16; 
+        const minFontSize = 9;  
+        el.style.fontSize = maxFontSize + 'px';
+        while (el.scrollWidth > el.clientWidth && parseFloat(el.style.fontSize) > minFontSize) {
+            el.style.fontSize = (parseFloat(el.style.fontSize) - 1) + 'px';
         }
     }
 
@@ -200,6 +267,7 @@
         const container = document.getElementById('bracket-container');
         container.innerHTML = '';
         matchesData = {};
+        updateContainerMode();
 
         const totalRounds = Math.log2(TOTAL_PLAYERS);
         let matchCounter = 0;
@@ -213,7 +281,6 @@
             const header = document.createElement('div');
             header.className = 'round-header';
             let titleText = (r === totalRounds - 1) ? "Final" : `Round ${r+1}`;
-            
             let defaultBo = 3;
             if (r === totalRounds - 1) defaultBo = 7; 
             else if (r > 0) defaultBo = 5;
@@ -233,18 +300,38 @@
             for (let i = 0; i < matchesInRound; i++) {
                 const mid = matchCounter++;
                 const isFirstRound = (r === 0);
-                matchesData[mid] = { id: mid, round: r, p1: isFirstRound?`P${mid*2+1}`:"", p2: isFirstRound?`P${mid*2+2}`:"", nextMatchId: null };
+                
+                let p1Html, p2Html;
+                let cardWidthClass = "";
+                
+                // V46: 只有第一輪且多人模式才加寬，其他輪次一律不加class (保持預設180px)
+                if (isFirstRound) {
+                    if (TEAM_SIZE === 2) cardWidthClass = "card-wide-2";
+                    if (TEAM_SIZE === 4) cardWidthClass = "card-wide-4";
+                }
+
+                if (isFirstRound && TEAM_SIZE > 1) {
+                    // 第一輪 & 多人：顯示特製隊名框 + 隊員名單
+                    p1Html = generateFullTeamBlock(mid, 1);
+                    p2Html = generateFullTeamBlock(mid, 2);
+                } else {
+                    // 1v1 或 第二輪以後：顯示標準框
+                    p1Html = generateSimpleBlock(mid, 1, isFirstRound);
+                    p2Html = generateSimpleBlock(mid, 2, isFirstRound);
+                }
+
+                matchesData[mid] = { id: mid, round: r, nextMatchId: null };
 
                 const card = document.createElement('div');
-                card.className = 'match-card';
+                card.className = `match-card ${cardWidthClass}`; 
                 card.id = `match-card-${mid}`;
                 card.onclick = () => selectMatch(mid);
                 
                 card.innerHTML = `
                     <div class="match-label">M${mid+1} <span class="load-badge">LOAD</span></div>
-                    <input id="m${mid}-p1" class="bracket-input" value="${matchesData[mid].p1}" placeholder="${isFirstRound?'輪空填Bye':'Win'}" ${isFirstRound?'':'readonly'} onclick="event.stopPropagation()">
+                    ${p1Html}
                     <div class="vs-text">VS</div>
-                    <input id="m${mid}-p2" class="bracket-input" value="${matchesData[mid].p2}" placeholder="${isFirstRound?'輪空填Bye':'Win'}" ${isFirstRound?'':'readonly'} onclick="event.stopPropagation()">
+                    ${p2Html}
                 `;
                 roundDiv.appendChild(card);
             }
@@ -252,6 +339,7 @@
             matchesInRound /= 2;
         }
 
+        // 畫線邏輯
         let currentStartId = 0;
         let currentCount = TOTAL_PLAYERS / 2;
         for (let r = 0; r < totalRounds - 1; r++) {
@@ -265,6 +353,66 @@
             currentCount /= 2;
         }
         setTimeout(drawConnectors, 200);
+    }
+
+    // 第一輪多人模式：藍底隊名 + 隊員格
+    function generateFullTeamBlock(mid, teamNum) {
+        let html = `<div class="team-block">`;
+        let defName = `Team ${mid*2+teamNum}`;
+        html += `<input id="m${mid}-t${teamNum}-name" class="team-name-input" value="${defName}" placeholder="隊名" oninput="autoFitText(this)" onclick="event.stopPropagation()">`;
+        
+        html += `<div class="roster-row">`;
+        for(let k=0; k<TEAM_SIZE; k++) {
+            html += `<input id="m${mid}-t${teamNum}-p${k}" class="player-input" value="" placeholder="P${k+1}" onclick="event.stopPropagation()">`;
+        }
+        html += `</div></div>`;
+        return html;
+    }
+
+    // 標準模式 (1v1 或 Round 2+)：白底標準格
+    function generateSimpleBlock(mid, teamNum, isFirstRound) {
+        let html = `<div class="team-block">`;
+        let defVal = isFirstRound ? `Player ${mid*2+teamNum}` : "";
+        let ph = isFirstRound ? "Name" : "Winner";
+        
+        // ID 邏輯：如果是多人模式，ID 還是要對應到 team-name，才能正確傳遞晉級
+        let inputId = (TEAM_SIZE > 1) ? `m${mid}-t${teamNum}-name` : `m${mid}-t${teamNum}-p0`; 
+        
+        // V46: 這裡絕對只用 bracket-input，不加 team-name-input
+        html += `<input id="${inputId}" class="bracket-input" value="${defVal}" placeholder="${ph}" ${isFirstRound?'':'readonly'} oninput="autoFitText(this)" onclick="event.stopPropagation()">`;
+        html += `</div>`;
+        return html;
+    }
+
+    function getTeamNameText(mid, teamNum) {
+        let nameEl = document.getElementById(`m${mid}-t${teamNum}-name`);
+        if (nameEl) return nameEl.value.trim();
+        let p0 = document.getElementById(`m${mid}-t${teamNum}-p0`);
+        if (p0) return p0.value.trim();
+        return "Unknown";
+    }
+
+    function getFullDisplay(mid, teamNum) {
+        let tName = getTeamNameText(mid, teamNum);
+        if(TEAM_SIZE === 1) return tName; 
+
+        let players = [];
+        for(let k=0; k<TEAM_SIZE; k++) {
+            let el = document.getElementById(`m${mid}-t${teamNum}-p${k}`);
+            if(el && el.value.trim()) players.push(el.value.trim());
+        }
+        
+        if(players.length > 0) return `${tName}\n(${players.join(' / ')})`;
+        return tName;
+    }
+
+    function setNextRoundWinner(mid, teamNum, winnerName) {
+        // 晉級寫入
+        let el = document.getElementById(`m${mid}-t${teamNum}-name`);
+        if(el) { el.value = winnerName; autoFitText(el); return; }
+        
+        let p0 = document.getElementById(`m${mid}-t${teamNum}-p0`);
+        if(p0) { p0.value = winnerName; autoFitText(p0); }
     }
 
     function drawConnectors() {
@@ -305,24 +453,23 @@
     let targetLegs = 3;
 
     function selectMatch(mid) {
-        const p1Input = document.getElementById(`m${mid}-p1`);
-        const p2Input = document.getElementById(`m${mid}-p2`);
-        const p1Val = p1Input ? p1Input.value.trim() : "";
-        const p2Val = p2Input ? p2Input.value.trim() : "";
-        matchesData[mid].p1 = p1Val; matchesData[mid].p2 = p2Val;
+        const name1 = getTeamNameText(mid, 1);
+        const name2 = getTeamNameText(mid, 2);
+        const display1 = getFullDisplay(mid, 1);
+        const display2 = getFullDisplay(mid, 2);
 
         const match = matchesData[mid];
         const fmtSelect = document.getElementById(`fmt-r${match.round}`);
         const legsNeeded = Math.ceil(parseInt(fmtSelect.value) / 2);
 
-        const checkBye = (n) => n.toLowerCase()==='bye' || n==='輪空' || n==='';
-        if(checkBye(p2Val) && !checkBye(p1Val)) { advanceWinnerByForce(mid, p1Val); return; }
-        if(checkBye(p1Val) && !checkBye(p2Val)) { advanceWinnerByForce(mid, p2Val); return; }
+        const isBye = (n) => n.toLowerCase().includes('bye') || n.includes('輪空');
+        if(isBye(name2) && !isBye(name1)) { advanceWinnerByForce(mid, name1); return; }
+        if(isBye(name1) && !isBye(name2)) { advanceWinnerByForce(mid, name2); return; }
 
-        if(confirm(`載入 Match ${mid+1} (${p1Val} vs ${p2Val})?\n賽制: 搶 ${legsNeeded} 勝`)) {
+        if(confirm(`載入 Match ${mid+1}?\n${name1} VS ${name2}\n賽制: 搶 ${legsNeeded} 勝`)) {
             currentMatchId = mid; targetLegs = legsNeeded;
-            document.getElementById('p1-name').innerText = p1Val || "Player 1";
-            document.getElementById('p2-name').innerText = p2Val || "Player 2";
+            document.getElementById('p1-name').innerText = display1;
+            document.getElementById('p2-name').innerText = display2;
             resetGame(); closeBracket();
         }
     }
@@ -330,44 +477,84 @@
     function advanceWinnerByForce(mid, wName) {
         const match = matchesData[mid];
         if (match.nextMatchId !== null) {
-            const slot = (match.id % 2 === 0) ? 'p1' : 'p2';
-            const el = document.getElementById(`m${match.nextMatchId}-${slot}`);
-            if(el) { el.value = wName; matchesData[match.nextMatchId][slot] = wName; }
+            const teamNum = (match.id % 2 === 0) ? 1 : 2;
+            setNextRoundWinner(match.nextMatchId, teamNum, wName);
             alert(`${wName} 輪空晉級！`);
+            setTimeout(drawConnectors, 50);
         }
     }
 
     function advanceWinner(winnerIdx) {
         if(currentMatchId===null) return;
         const match = matchesData[currentMatchId];
-        const wName = (winnerIdx===1) ? document.getElementById('p1-name').innerText : document.getElementById('p2-name').innerText;
+        const winnerName = getTeamNameText(currentMatchId, winnerIdx);
+        
         if (match.nextMatchId !== null) {
-            const slot = (match.id % 2 === 0) ? 'p1' : 'p2';
-            const el = document.getElementById(`m${match.nextMatchId}-${slot}`);
-            if(el) { el.value = wName; matchesData[match.nextMatchId][slot] = wName; }
-            alert(`恭喜 ${wName} 晉級！`);
-        } else { alert(`恭喜 ${wName} 獲得總冠軍！`); }
+            const teamNum = (match.id % 2 === 0) ? 1 : 2;
+            setNextRoundWinner(match.nextMatchId, teamNum, winnerName);
+            alert(`恭喜 ${winnerName} 晉級！`);
+        } else { alert(`恭喜 ${winnerName} 獲得總冠軍！`); }
     }
 
+    // === Game Logic ===
     const GAME_MODE = 501;
     let currentPlayer = 1, legStarter = 1, turnDarts = 0, isBoardLocked = false;
     let players = { 1: { score: GAME_MODE, legs: 0, roundHistory: [] }, 2: { score: GAME_MODE, legs: 0, roundHistory: [] } };
     let throwHistory = [];
+    let turnHitCounts = {}; 
+    let markers = [];
 
     window.onload = function() { createBoard(); initBracketStructure(); };
 
+    function handleMiss() {
+        if (isBoardLocked) return;
+        const p = players[currentPlayer];
+        turnDarts++;
+        let h = { id: 'Miss', score: 0, player: currentPlayer, turnIndex: turnDarts };
+        p.roundHistory.push(h); throwHistory.push(h);
+        updateUI();
+        if (turnDarts >= 3) lockBoard();
+    }
+
     function handleHit(e) {
         if (isBoardLocked) return;
+        
         const scoreHit = parseInt(e.target.getAttribute("data-score"));
-        // 取得該區塊的 ID (例如 T20, S5) 用於顯示
         const hitId = e.target.getAttribute("data-id") || scoreHit;
         
+        const midAngle = parseFloat(e.target.getAttribute("data-angle"));
+        const midRadius = parseFloat(e.target.getAttribute("data-radius"));
+        const isBull = (hitId === 'B50' || hitId === 'B25');
+
+        let hitCount = (turnHitCounts[hitId] || 0) + 1;
+        turnHitCounts[hitId] = hitCount;
+
+        // 品字形落點
+        let finalRadius = midRadius;
+        const radialOffset = 8; 
+
+        if (!isBull) {
+            if (hitCount === 1) { finalRadius = midRadius; }           
+            if (hitCount === 2) { finalRadius = midRadius - radialOffset; } 
+            if (hitCount === 3) { finalRadius = midRadius + radialOffset; } 
+        } else {
+            if (hitCount === 2) finalRadius -= 5;
+            if (hitCount === 3) finalRadius += 5;
+        }
+
+        const radian = midAngle * Math.PI / 180;
+        const finalX = finalRadius * Math.cos(radian);
+        const finalY = finalRadius * Math.sin(radian);
+        
+        addDartMarker(finalX, finalY, turnDarts + 1, 4);
+
         const p = players[currentPlayer];
-        if (p.score - scoreHit < 0 || p.score - scoreHit === 1) { alert("爆鏢!"); lockBoard(); return; }
+        
+        if (p.score - scoreHit < 0 || p.score - scoreHit === 1) { 
+            alert("爆鏢!"); lockBoard(); return; 
+        }
         
         p.score -= scoreHit; turnDarts++;
-        
-        // 儲存投擲記錄 (包含 id 用於顯示)
         let h = { id: hitId, score: scoreHit, player: currentPlayer, turnIndex: turnDarts };
         p.roundHistory.push(h); throwHistory.push(h);
         
@@ -375,6 +562,22 @@
         
         if (p.score === 0) { setTimeout(() => { alert("Wins Leg!"); handleLegWin(currentPlayer); }, 100); return; }
         if (turnDarts >= 3) lockBoard();
+    }
+    
+    function addDartMarker(x, y, dartNum, r) {
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        marker.setAttribute("cx", x);
+        marker.setAttribute("cy", y);
+        marker.setAttribute("r", r);
+        marker.setAttribute("class", `dart-marker dart-marker-${dartNum}`);
+        svg.appendChild(marker);
+        markers.push(marker);
+    }
+    
+    function clearMarkers() {
+        markers.forEach(m => m.remove());
+        markers = [];
+        turnHitCounts = {}; 
     }
 
     function handleLegWin(winner) {
@@ -384,6 +587,7 @@
         players[1].score = GAME_MODE; players[2].score = GAME_MODE;
         players[1].roundHistory = []; players[2].roundHistory = [];
         throwHistory = []; turnDarts = 0; isBoardLocked = false;
+        clearMarkers();
         updateUI(); updateActiveCard();
     }
 
@@ -393,44 +597,58 @@
         players[1].roundHistory = []; players[2].roundHistory = [];
         throwHistory = []; turnDarts = 0; isBoardLocked = false;
         currentPlayer = 1; legStarter = 1;
+        clearMarkers();
         updateUI(); updateActiveCard();
     }
 
-    function switchPlayer() { isBoardLocked = false; turnDarts = 0; players[currentPlayer].roundHistory = []; currentPlayer = (currentPlayer===1)?2:1; updateUI(); updateActiveCard(); }
-    function undoLastDart() { if(throwHistory.length===0) return; const last=throwHistory.pop(); if(last.player!==currentPlayer){alert("無法復原");return;} players[currentPlayer].score+=last.score; players[currentPlayer].roundHistory.pop(); turnDarts--; isBoardLocked=false; updateUI(); }
+    function switchPlayer() { 
+        isBoardLocked = false; 
+        turnDarts = 0; 
+        players[currentPlayer].roundHistory = []; 
+        currentPlayer = (currentPlayer===1)?2:1; 
+        clearMarkers(); 
+        updateUI(); updateActiveCard(); 
+    }
+    
+    function undoLastDart() { 
+        if(throwHistory.length===0) return; 
+        const last=throwHistory.pop(); 
+        if(last.player!==currentPlayer){alert("無法復原");return;} 
+        
+        players[currentPlayer].score+=last.score; 
+        players[currentPlayer].roundHistory.pop(); 
+        turnDarts--; 
+        isBoardLocked=false; 
+        
+        if (last.id !== 'Miss') {
+            if(turnHitCounts[last.id] > 0) turnHitCounts[last.id]--;
+            const lastMarker = markers.pop();
+            if(lastMarker) lastMarker.remove();
+        }
+        
+        updateUI(); 
+    }
     
     function updateUI() { 
         document.getElementById('p1-score').innerText = players[1].score; 
         document.getElementById('p2-score').innerText = players[2].score; 
         document.getElementById('p1-legs').innerText = players[1].legs; 
         document.getElementById('p2-legs').innerText = players[2].legs; 
-        
-        // V27: 更新下方小格子
         updateSlots(1); updateSlots(2);
-
         const overlay = document.getElementById('board-overlay');
         const btnNext = document.getElementById('btn-next');
-        
-        if(isBoardLocked) { 
-            overlay.style.display = 'flex'; 
-            btnNext.classList.add('ready'); 
-        } else { 
-            overlay.style.display = 'none'; 
-            btnNext.classList.remove('ready'); 
-        } 
+        if(isBoardLocked) { overlay.style.display = 'flex'; btnNext.classList.add('ready'); } else { overlay.style.display = 'none'; btnNext.classList.remove('ready'); } 
     }
 
-    // V27: 更新小格子邏輯
     function updateSlots(pid) {
         const hist = players[pid].roundHistory;
         const slots = document.getElementById(`p${pid}-slots`).getElementsByClassName('dart-slot');
-        // 清空
-        for(let s of slots) { s.innerText = '-'; s.classList.remove('filled'); }
-        // 填入
+        for(let s of slots) { s.innerText = '-'; s.classList.remove('filled', 'miss'); }
         hist.forEach((h, i) => { 
             if (slots[i]) { 
-                slots[i].innerText = h.id; // 顯示 T20, S5 等
+                slots[i].innerText = h.id; 
                 slots[i].classList.add('filled'); 
+                if(h.id === 'Miss') slots[i].classList.add('miss'); 
             } 
         });
     }
@@ -446,7 +664,6 @@
             const start = (i * sectorAngle) - 90 - (sectorAngle/2);
             const end = start + sectorAngle;
             const isEven = i % 2 === 0;
-            // 傳入 id: `D${score}`, `S${score}`...
             drawSector(start, end, 160, 195, isEven?'area-red':'area-green', `D${score}`, score*2);
             drawSector(start, end, 110, 160, isEven?'area-black':'area-white', `S${score}`, score);
             drawSector(start, end, 80, 110, isEven?'area-red':'area-green', `T${score}`, score*3);
@@ -461,17 +678,30 @@
         const x1=ir*Math.cos(r1), y1=ir*Math.sin(r1), x2=or*Math.cos(r1), y2=or*Math.sin(r1);
         const x3=or*Math.cos(r2), y3=or*Math.sin(r2), x4=ir*Math.cos(r2), y4=ir*Math.sin(r2);
         const d = `M${x1} ${y1}L${x2} ${y2}A${or} ${or} 0 0 1 ${x3} ${y3}L${x4} ${y4}A${ir} ${ir} 0 0 0 ${x1} ${y1}Z`;
+        
         const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-        p.setAttribute("d",d); p.setAttribute("class",cls); 
-        p.setAttribute("data-id", id); // 存 ID
+        p.setAttribute("d",d); 
+        p.setAttribute("class",cls); 
+        p.setAttribute("data-id", id); 
         p.setAttribute("data-score",val);
+        
+        const midAngle = (s + e) / 2;
+        const midRadius = (ir + or) / 2;
+        p.setAttribute("data-angle", midAngle);
+        p.setAttribute("data-radius", midRadius);
+
         p.addEventListener('click', handleHit); svg.appendChild(p);
     }
     function drawCircle(r, cls, id, val) {
         const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-        c.setAttribute("cx",0); c.setAttribute("cy",0); c.setAttribute("r",r); c.setAttribute("class",cls); 
-        c.setAttribute("data-id", id);
+        c.setAttribute("cx",0); c.setAttribute("cy",0); c.setAttribute("r",r); 
+        c.setAttribute("class",cls); 
+        c.setAttribute("data-id", id); 
         c.setAttribute("data-score",val);
+        
+        c.setAttribute("data-angle", 0);
+        c.setAttribute("data-radius", 0);
+        
         c.addEventListener('click', (e)=>{e.stopPropagation(); handleHit(e);}); svg.appendChild(c);
     }
     function drawLabel(angle, r, text) {
