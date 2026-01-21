@@ -1,1249 +1,1241 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>硬靶專業記分板 V73 (雙人賽橫向排版優化)</title>
-    <style>
-        /* === 全域樣式 === */
-        :root {
-            --bg-color: #eef2f5; --panel-bg: #ffffff; --left-bg: #dfe4ea;
-            --text-main: #1a1a1a; --text-sub: #555555;
-            --p1-color: #007bff; --p2-color: #dc3545; 
-            --line-color: #555; --line-width: 2px;
-        }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow: hidden; background-color: var(--bg-color); }
-        body { display: flex; flex-direction: column; }
-        #main-container { flex: 1; display: flex; height: 100%; overflow: hidden; }
-        
-        #left-panel { flex: 6; display: flex; justify-content: center; align-items: center; background: var(--left-bg); border-right: 1px solid #ccc; position: relative; }
-        #right-panel { flex: 4; background: var(--panel-bg); padding: 15px; display: flex; flex-direction: column; box-shadow: -5px 0 20px rgba(0,0,0,0.05); z-index: 10; overflow-y: auto; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>硬靶專業記分板 V74（整理版）</title>
+<style>
+:root{
+  --bg:#eef2f5; --panel:#fff; --left:#dfe4ea;
+  --p1:#007bff; --p2:#dc3545;
+  --line:#555; --linew:2px;
+}
+html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);overflow:hidden}
+#main{display:flex;height:100%}
+#left{flex:6;display:flex;align-items:center;justify-content:center;background:var(--left);position:relative;border-right:1px solid #ccc}
+#right{flex:4;background:var(--panel);padding:15px;display:flex;flex-direction:column;overflow:auto;box-shadow:-5px 0 20px rgba(0,0,0,.05);z-index:10}
+#bracketBtn{width:100%;padding:12px;margin-bottom:15px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-size:1rem}
+.player{background:#f8f9fa;border:2px solid #e9ecef;border-radius:12px;padding:10px;margin-bottom:12px;opacity:.7;transition:.2s;position:relative}
+.player.active{opacity:1;background:#fff;border-width:3px;transform:scale(1.01)}
+.player.active.p1{border-color:var(--p1)} .player.active.p2{border-color:var(--p2)}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.name{font-size:1.3rem;font-weight:900;white-space:pre-wrap;line-height:1.2;word-break:break-word}
+.ind{font-size:1.5rem;visibility:hidden}
+.player.active .ind{visibility:visible}
+.slots{display:flex;gap:5px;margin-bottom:5px;height:30px}
+.slot{flex:1;background:#fff;border:1px solid #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#555}
+.slot.filled{color:#000;border-color:#333;background:#e9ecef}
+.slot.miss{color:#dc3545;background:#fff0f0;border-color:#dc3545}
+.row{display:flex;justify-content:space-between;align-items:center;margin:5px 0}
+.stats{width:40%;display:flex;flex-direction:column}
+.lab{font-size:.8rem;color:#888;font-weight:900;text-transform:uppercase}
+.val{font-size:1.5rem;font-weight:900;color:#555}
+.hint{font-size:.9rem;color:#d63031;font-weight:900;margin-top:4px;min-height:1.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.big{width:60%;font-size:4.5rem;font-weight:900;text-align:right;line-height:1}
+.round{font-size:1.1rem;font-weight:900;color:#666;text-align:right;margin-top:-5px}
+#logo{flex-grow:1;min-height:100px;border:2px dashed #e0e0e0;border-radius:12px;margin:15px 0;display:flex;align-items:center;justify-content:center;color:#ccc;font-weight:900;letter-spacing:1px}
+#controls{height:60px;display:grid;grid-template-columns:1fr 2.5fr;gap:12px;margin-top:auto}
+button.ctrl{border:none;border-radius:10px;font-size:1.2rem;font-weight:900;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.1)}
+button.ctrl:active{transform:translateY(4px);box-shadow:none}
+#undo{background:#fff;color:#495057;border:2px solid #ced4da}
+#next{background:#007bff;color:#fff;opacity:.5;pointer-events:none}
+#next.ready{opacity:1;pointer-events:all;animation:pulse 1.5s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 
-        /* UI 元件 */
-        #bracket-btn { width: 100%; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; gap: 8px; font-size: 1rem; }
-        .player-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 10px; margin-bottom: 12px; opacity: 0.7; transition: all 0.2s; position: relative; }
-        .player-card.active { opacity: 1; background: #fff; border-width: 3px; transform: scale(1.01); }
-        .player-card.active-p1 { border-color: var(--p1-color); } .player-card.active-p2 { border-color: var(--p2-color); }
-        
-        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .player-name { font-size: 1.3rem; font-weight: 900; white-space: pre-wrap; line-height: 1.2; word-break: break-word; }
-        .turn-indicator { font-size: 1.5rem; visibility: hidden; }
-        .active .turn-indicator { visibility: visible; }
+#missBtn,#softBtn{
+  position:absolute;bottom:20px;z-index:50;width:80px;height:80px;border-radius:50%;
+  font-size:1rem;font-weight:900;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid #fff;
+  box-shadow:0 4px 10px rgba(0,0,0,.15)
+}
+#missBtn{left:20px;background:#dc3545;box-shadow:0 4px 10px rgba(220,53,69,.4)}
+#softBtn{right:20px;background:#ff9f43;box-shadow:0 4px 10px rgba(255,159,67,.4)}
+#missBtn:active,#softBtn:active{transform:scale(.95)}
 
-        .dart-slots { display: flex; gap: 5px; margin-bottom: 5px; height: 30px; }
-        .dart-slot { flex: 1; background: #fff; border: 1px solid #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; font-size: 1rem; }
-        .dart-slot.filled { color: #000; border-color: #333; background: #e9ecef; }
-        .dart-slot.miss { color: #dc3545; background: #fff0f0; border-color: #dc3545; }
+#overlay{
+  position:absolute;
+  inset:0;
+  display:none;
+  pointer-events:none; /* 不擋點擊，也不影響看鏢點 */
+  background: transparent; /* 不再整片變暗 */
+  z-index: 100;
+  align-items: flex-end;   /* 文字放下方，避免蓋住鏢點 */
+  justify-content: center;
+  padding-bottom: 22px;
+  text-align:center;
+}
+#overlay .t{
+  display:inline-block;
+  background: rgba(255,255,255,0.92);
+  padding: 10px 18px;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  color:#000;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+#overlay .s{
+  display:block;
+  margin-top: 6px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color:#555;
+}
+#overlay .t{font-size:2.5rem;font-weight:900;color:#000}
 
-        /* 分數與數據區 */
-        .score-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
-        .stats-col { text-align: left; display: flex; flex-direction: column; justify-content: center; width: 40%; }
-        .stat-label { font-size: 0.8rem; color: #888; font-weight: bold; text-transform: uppercase; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; color: #555; }
-        .checkout-hint { font-size: 0.9rem; color: #d63031; font-weight: bold; margin-top: 4px; min-height: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .score-big { font-size: 4.5rem; font-weight: 900; text-align: right; line-height: 1; width: 60%; }
-        
-        .round-display { font-size: 1.1rem; font-weight: bold; color: #666; text-align: right; margin-top: -5px; }
-        
-        #logo-placeholder { flex-grow: 1; display: flex; justify-content: center; align-items: center; border: 2px dashed #e0e0e0; border-radius: 12px; margin: 15px 0; color: #ccc; font-weight: bold; letter-spacing: 1px; min-height: 100px; }
+svg#dartboard{max-width:90%;max-height:90%;filter:drop-shadow(0 5px 15px rgba(0,0,0,.2))}
+.area-black { fill: #111111; stroke: #6c757d; }
+.area-white { fill: #f4f4f4; stroke: #6c757d; }
+.area-red { fill: #b00020; stroke: #6c757d; }
+.area-green { fill: #006b3f; stroke: #6c757d; }
+.text-label{font-size:24px;font-weight:900;fill:#fff;pointer-events:none;text-anchor:middle;dominant-baseline:central;text-shadow:0 0 4px rgba(0,0,0,.9)}
+.dart-marker{pointer-events:none;stroke:#fff;stroke-width:1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));transition:.15s}
+.dart-marker-1{fill:#dc3545}.dart-marker-2{fill:#28a745}.dart-marker-3{fill:#007bff}
 
-        #control-panel { height: 60px; display: grid; grid-template-columns: 1fr 2.5fr; gap: 12px; margin-top: auto; }
-        button { border: none; border-radius: 10px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        #btn-undo { background: #fff; color: #495057; border: 2px solid #ced4da; }
-        #btn-next { background: #007bff; color: #fff; opacity: 0.5; pointer-events: none; }
-        #btn-next.ready { opacity: 1; pointer-events: all; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+#bracketModal{position:fixed;inset:0;background:#f0f2f5;z-index:200;display:none;flex-direction:column}
+#bHeader{background:#fff;border-bottom:1px solid #ccc;padding:15px 20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 5px rgba(0,0,0,.05)}
+.topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.hctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lbl{font-weight:900;color:#555;font-size:.9rem}
+.sel{padding:5px;font-size:.9rem;border:2px solid #007bff;border-radius:5px;color:#007bff;font-weight:900;background:#fff;cursor:pointer}
+.tabs{display:flex;justify-content:center;gap:10px;margin-top:5px;width:100%}
+.tab{padding:8px 20px;border:2px solid #ccc;background:#fff;color:#555;border-radius:20px;font-weight:900;cursor:pointer;transition:.2s}
+.tab.active{background:#007bff;color:#fff;border-color:#007bff;box-shadow:0 2px 5px rgba(0,123,255,.3)}
+#bContent{flex:1;overflow:auto;position:relative;background:#f8f9fa}
+#scroll{position:relative;width:100%;height:100%;padding:20px;box-sizing:border-box}
+#lines{position:absolute;inset:0;pointer-events:none;z-index:1}
+.connector{fill:none;stroke:var(--line);stroke-width:var(--linew);shape-rendering:crispEdges}
+.bracket{display:flex;gap:80px;position:relative;z-index:2;width:max-content;padding:20px}
+.roundCol{display:flex;flex-direction:column;justify-content:space-around;padding-top:50px;position:relative;min-width:180px}
+.roundHeader{position:absolute;top:0;width:100%;text-align:center;display:flex;flex-direction:column;gap:5px;align-items:center}
+.roundTitle{font-weight:900;color:#555}
+.match{background:#fff;border:1px solid #ccc;border-radius:6px;padding:8px;margin:20px 0;width:220px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+.match:hover{border-color:#007bff;transform:translateY(-2px)}
+.mlab{font-size:.75rem;color:#007bff;font-weight:900;margin-bottom:2px}
+.team{display:flex;flex-direction:column;gap:2px;margin-bottom:6px;border:1px solid #eee;padding:4px;border-radius:4px;background:#fcfcfc}
+.inp{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #eee;font-size:16px;padding:4px;text-align:left;background:transparent}
+.vs{font-size:.65rem;color:#ccc;text-align:center;margin:1px 0;font-weight:900}
 
-        #btn-miss-trigger {
-            position: absolute; bottom: 20px; left: 20px; z-index: 50;
-            background: #dc3545; color: white; width: 80px; height: 80px;
-            border-radius: 50%; font-size: 1rem; font-weight: 900;
-            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
-            cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid white;
-        }
-        #btn-miss-trigger:active { transform: scale(0.95); }
+.groupGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;width:100%;max-width:1200px;margin:0 auto}
+@media(min-width:768px){.groupGrid{grid-template-columns:1fr 1fr}}
+.gbox{background:#fff;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.05);padding:15px;border-top:5px solid #007bff;box-sizing:border-box}
+.gtitle{font-size:1.4rem;font-weight:900;color:#333;margin-bottom:10px}
+.stand{width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:15px}
+.stand th{background:#f8f9fa;padding:8px;text-align:center;color:#555;font-size:.8rem;border-bottom:2px solid #ddd}
+.stand td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-weight:900;vertical-align:middle}
+.stand td:first-child{text-align:left}
+.nameInput{width:98%;border:none;border-bottom:1px dashed #ccc;font-size:.95rem;font-weight:900;color:#333;text-align:left;padding:4px 2px;background:transparent}
+.nameInput:focus{outline:none;border-bottom:2px solid #007bff;background:#fff}
+.doubleRow{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.nameHalf{width:42%;text-align:center}
+.sep{width:10%;text-align:center;color:#999;font-weight:900}
+.rank1{color:#d63031;background:#fff5f5}.rank2{color:#0984e3;background:#f0f7ff}
 
-        #board-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); z-index: 100; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
-        .overlay-text { color: #000; font-size: 2.5rem; font-weight: 900; }
-
-        /* === 賽程表樣式 === */
-        #bracket-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #f0f2f5; z-index: 200; display: none; flex-direction: column; }
-        #bracket-header { background: #fff; border-bottom: 1px solid #ccc; padding: 15px 20px; display:flex; flex-direction:column; gap:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px; }
-        .header-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;}
-        .label-text { font-weight: bold; color: #555; font-size: 0.9rem; }
-
-        .view-tabs { display: flex; justify-content: center; gap: 10px; margin-top: 5px; width: 100%; }
-        .view-tab { padding: 8px 20px; border: 2px solid #ccc; background: #fff; color: #555; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .view-tab.active { background: #007bff; color: white; border-color: #007bff; box-shadow: 0 2px 5px rgba(0,123,255,0.3); }
-        .view-tab:hover:not(.active) { background: #f0f0f0; }
-
-        #bracket-content { flex: 1; overflow: auto; position: relative; background: #f8f9fa; }
-        #bracket-scroll-view { position: relative; width: 100%; height: 100%; padding: 20px; box-sizing: border-box; }
-        
-        #bracket-lines { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; width: 100%; height: 100%; }
-        .connector-path { fill: none; stroke: var(--line-color); stroke-width: var(--line-width); shape-rendering: crispEdges; }
-        
-        .bracket-container { display: flex; gap: 80px; position: relative; z-index: 2; width: max-content; padding: 20px; }
-        .round-column { display: flex; flex-direction: column; justify-content: space-around; padding-top: 50px; position: relative; min-width: 180px; }
-        .round-header { position: absolute; top: 0; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 5px; align-items: center; }
-        .round-title { font-weight: bold; color: #555; font-size: 1rem; }
-        
-        /* ★ 修改：稍微加寬卡片，讓雙人名字可以橫向放得下 */
-        .match-card { background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 8px; margin: 20px 0; width: 220px; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        
-        .match-card:hover { border-color: #007bff; transform: translateY(-2px); }
-        .match-label { font-size: 0.75rem; color: #007bff; font-weight: bold; margin-bottom: 2px; }
-        .team-block { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; border: 1px solid #eee; padding: 4px; border-radius: 4px; background: #fcfcfc; }
-        .bracket-input { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid #eee; font-size: 16px; padding: 4px; text-align: left; background: transparent; }
-        .vs-text { font-size: 0.65rem; color: #ccc; text-align: center; margin: 1px 0; font-weight: bold;}
-
-        /* 小組賽 Grid */
-        .group-stage-container { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px; 
-            width: 100%; 
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        @media (min-width: 768px) { .group-stage-container { grid-template-columns: 1fr 1fr; } }
-
-        .group-box { background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 15px; width: 100%; border-top: 5px solid #007bff; box-sizing: border-box; }
-        .group-header-text { font-size: 1.4rem; font-weight: 900; color: #333; margin-bottom: 10px; }
-        
-        .standings-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-bottom: 15px; }
-        .standings-table th { background: #f8f9fa; padding: 8px; text-align: center; color: #555; font-size: 0.8rem; border-bottom: 2px solid #ddd; }
-        .standings-table td { border-bottom: 1px solid #eee; padding: 8px; text-align: center; font-weight: bold; vertical-align: middle; }
-        .standings-table td:first-child { text-align: left; }
-        
-        .name-input { width: 98%; border: none; border-bottom: 1px dashed #ccc; font-size: 0.95rem; font-weight: bold; color: #333; text-align: left; padding: 4px 2px; background: transparent; transition: 0.2s; }
-        .name-input:focus { outline: none; border-bottom: 2px solid #007bff; background: #fff; }
-
-        .double-input-group { display: flex; align-items: center; justify-content: space-between; }
-        .name-input.half { width: 42%; text-align: center; }
-        .separator { width: 10%; text-align: center; color: #999; font-weight: bold; }
-
-        .rank-1 { color: #d63031; background: #fff5f5; } 
-        .rank-2 { color: #0984e3; background: #f0f7ff; } 
-
-        .schedule-container { width: 100%; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-        .schedule-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .schedule-table th { background: #343a40; color: #fff; padding: 12px; text-align: left; font-size: 0.9rem; }
-        .schedule-table td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-weight: bold; vertical-align: middle; }
-        .schedule-table tr:hover { background: #f8f9fa; }
-        
-        .time-input { border: 1px solid #ccc; border-radius: 4px; padding: 4px; font-family: inherit; width: 80px; text-align: center; }
-        .score-tag { display: inline-block; padding: 4px 8px; border-radius: 4px; background: #e9ecef; color: #555; min-width: 40px; text-align: center; }
-        .score-tag.done { background: #28a745; color: white; }
-        .play-btn { padding: 4px 12px; background: #007bff; color: white; border-radius: 4px; text-decoration: none; font-size: 0.85rem; cursor: pointer; display: inline-block; }
-        .play-btn.disabled { background: #ccc; cursor: default; }
-
-        .control-select { padding: 5px; font-size: 0.9rem; border: 2px solid #007bff; border-radius: 5px; color: #007bff; font-weight: bold; background: white; cursor: pointer; }
-
-        svg#dartboard { max-width: 90%; max-height: 90%; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2)); }
-        .area-black { fill: #212529; stroke: #6c757d; } .area-white { fill: #f8f9fa; stroke: #6c757d; }
-        .area-red { fill: #e02e42; stroke: #6c757d; } .area-green { fill: #26a65b; stroke: #6c757d; }
-        .text-label { font-size: 24px; font-weight: 900; fill: #fff; pointer-events: none; text-anchor: middle; dominant-baseline: central; alignment-baseline: central; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
-        .dart-marker { pointer-events: none; stroke: #fff; stroke-width: 1px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); transition: all 0.15s ease-out; }
-        .dart-marker-1 { fill: #dc3545; } .dart-marker-2 { fill: #28a745; } .dart-marker-3 { fill: #007bff; } 
-
-        /* 軟靶模式樣式 */
-        #btn-soft-tip {
-            position: absolute; bottom: 20px; right: 20px; z-index: 50;
-            background: #ff9f43; color: white; width: 80px; height: 80px;
-            border-radius: 50%; font-size: 1rem; font-weight: 900;
-            box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4);
-            cursor: pointer; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; border: 4px solid white;
-        }
-        #btn-soft-tip:active { transform: scale(0.95); }
-
-        /* 軟靶簡易計分板 */
-        #soft-tip-panel {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #2d3436; z-index: 300; /* 蓋過一切 */
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            color: white;
-        }
-        .st-container { display: flex; align-items: center; gap: 40px; }
-        .st-player-col { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        .st-name { font-size: 2rem; font-weight: bold; }
-        .st-score { font-size: 6rem; font-weight: 900; line-height: 1; }
-        .st-btn-add {
-            width: 80px; height: 80px; border-radius: 50%; border: none;
-            font-size: 2.5rem; cursor: pointer; color: white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.1s;
-        }
-        .st-btn-add:active { transform: scale(0.95); }
-        .st-btn-p1 { background: #007bff; }
-        .st-btn-p2 { background: #dc3545; }
-        .st-vs { font-size: 3rem; font-weight: bold; color: #636e72; margin-top: -50px;}
-        #st-close {
-            position: absolute; top: 20px; right: 20px;
-            padding: 10px 20px; background: transparent; border: 2px solid #aaa;
-            color: #aaa; border-radius: 20px; cursor: pointer; font-weight: bold;
-        }
-    </style>
+.schWrap{width:100%;max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 5px rgba(0,0,0,.05)}
+.table th{background:#343a40;color:#fff;padding:12px;text-align:left;font-size:.9rem}
+.table td{padding:12px;border-bottom:1px solid #eee;color:#333;font-weight:900;vertical-align:middle}
+.table tr:hover{background:#f8f9fa}
+.time{border:1px solid #ccc;border-radius:4px;padding:4px;font-family:inherit;width:80px;text-align:center}
+.tag{display:inline-block;padding:4px 8px;border-radius:4px;background:#e9ecef;color:#555;min-width:40px;text-align:center}
+.tag.done{background:#28a745;color:#fff}
+.play{padding:4px 12px;background:#007bff;color:#fff;border-radius:4px;font-size:.85rem;cursor:pointer;display:inline-block}
+.play.disabled{background:#ccc;cursor:default}
+.rulebar{display:none;width:100%;justify-content:center;gap:10px;align-items:center;flex-wrap:wrap}
+.rulebar span.small{font-size:.9rem;font-weight:900;color:#888}
+#advWrap,#backWrap{display:none;text-align:center;margin-top:10px}
+</style>
 </head>
 <body>
+<div id="bracketModal">
+  <div id="bHeader">
+    <div class="topbar">
+      <div class="hctrl">
+        <span class="lbl">模式：</span>
+        <select id="modeSel" class="sel">
+          <option value="single">個人賽 (Singles)</option>
+          <option value="double">雙人賽 (Doubles)</option>
+          <option value="team">團體賽 (Team)</option>
+        </select>
 
-    <div id="bracket-modal">
-        <div id="bracket-header">
-            <div class="top-bar">
-                <div class="header-controls">
-                    <span class="label-text">分數：</span>
-                    <select id="score-selector" class="control-select" onchange="changeTargetScore()">
-                        <option value="301">301</option>
-                        <option value="501" selected>501</option>
-                        <option value="701">701</option>
-                    </select>
+        <span class="lbl">賽制：</span>
+        <select id="fmtSel" class="sel">
+          <option value="knockout">單淘汰賽 (Knockout)</option>
+          <option value="group">小組循環賽 (Round Robin)</option>
+        </select>
 
-                    <span class="label-text">模式：</span>
-                    <select id="mode-selector" class="control-select" onchange="changeGameMode()">
-                        <option value="single">個人賽 (Singles)</option>
-                        <option value="double">雙人賽 (Doubles)</option>
-                        <option value="team">團體賽 (Team)</option>
-                    </select>
-
-                    <span class="label-text">賽制：</span>
-                    <select id="format-selector" class="control-select" onchange="changeBracketFormat()">
-                        <option value="knockout">單淘汰賽 (Knockout)</option>
-                        <option value="group">小組循環賽 (Round Robin)</option>
-                    </select>
-                    
-                    <span class="label-text">總人數：</span>
-                    <select id="size-selector" class="control-select" onchange="changeBracketSize()">
-                        <option value="4">4組 (分1組)</option>
-                        <option value="8" selected>8組 (分2組)</option>
-                        <option value="16">16組 (分4組)</option>
-                        <option value="32">32組 (分8組)</option>
-                        <option value="64">64組 (分16組)</option>
-                        <option value="128">128人</option> 
-                    </select>
-                </div>
-                <button id="close-bracket" onclick="closeBracket()" style="padding:5px 15px; cursor:pointer; background:#eee; color:#333; border:1px solid #ccc;">關閉</button>
-            </div>
-            
-            <div class="view-tabs" id="group-tabs" style="display:none;">
-                <div class="view-tab active" onclick="setSubView('rankings')">📊 積分榜 (Standings)</div>
-                <div class="view-tab" onclick="setSubView('schedule')">📅 賽程表 (Schedule)</div>
-            </div>
-            
-            <div class="view-tabs" id="knockout-tabs" style="display:none;">
-                <div class="view-tab active" onclick="setSubView('bracket')">🌳 樹狀圖 (Bracket)</div>
-                <div class="view-tab" onclick="setSubView('schedule')">📅 賽程表 (Schedule)</div>
-            </div>
-
-            <div id="advance-btn-container" style="text-align:center; display:none; margin-top:10px;">
-                <button onclick="generateKnockoutFromGroups()" style="background:#28a745; color:white; padding:8px 20px; border-radius:20px; font-size:1rem; font-weight:bold; border:none; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-                    🏆 結算成績並產生決賽表
-                </button>
-            </div>
-            
-            <div id="back-to-group-container" style="text-align:center; display:none; margin-top:10px;">
-                <button onclick="switchStageView('group')" style="background:#6c757d; color:white; padding:5px 15px; border-radius:15px; font-size:0.9rem; font-weight:bold; border:none; cursor:pointer;">
-                    ↩ 返回小組賽修改成績
-                </button>
-            </div>
-        </div>
-        
-        <div id="bracket-content">
-            <div id="bracket-scroll-view">
-                <svg id="bracket-lines"></svg>
-                <div id="group-stage-container" class="group-stage-container" style="display:none;"></div>
-                <div id="group-schedule-container" class="schedule-container" style="display:none;"></div>
-                <div id="bracket-container" class="bracket-container mode-single" style="display:none;"></div>
-                <div id="knockout-schedule-container" class="schedule-container" style="display:none;"></div>
-            </div>
-        </div>
+        <span class="lbl">總人數：</span>
+        <select id="sizeSel" class="sel"></select>
+      </div>
+      <button class="ctrl" style="padding:6px 16px;background:#eee;color:#333;border:1px solid #ccc" onclick="closeBracket()">關閉</button>
     </div>
 
-    <div id="main-container">
-        <div id="left-panel">
-            <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
-            <button id="btn-miss-trigger" onclick="handleMiss()"><div>MISS</div><div style="font-size:0.8rem">脫靶</div></button>
-            
-            <button id="btn-soft-tip" onclick="toggleSoftTip(true)">
-                <div>SOFT</div>
-                <div style="font-size:0.8rem">軟靶</div>
-            </button>
-
-            <div id="board-overlay">
-                <div class="overlay-text">請核對分數</div>
-                <div style="font-size:1.2rem; color:#555; font-weight:bold; margin-top:10px;">並按下換人鍵</div>
-            </div>
-        </div>
-
-        <div id="right-panel">
-            <button id="bracket-btn" onclick="openBracket()">賽程表 / 戰績輸入</button>
-            <div class="player-card active active-p1" id="p1-card">
-                <div class="player-header"><div class="turn-indicator">👉</div><div class="player-name" id="p1-name">Player 1</div></div>
-                <div class="dart-slots" id="p1-slots"><div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div></div>
-                <div class="score-row">
-                    <div class="stats-col">
-                        <div class="stat-label">AVG</div>
-                        <div class="stat-value" id="p1-avg">0.00</div>
-                        <div class="checkout-hint" id="p1-hint"></div>
-                    </div>
-                    <div class="score-big" id="p1-score">501</div>
-                </div>
-                <div class="round-display">Legs: <span id="p1-legs">0</span></div>
-            </div>
-            <div class="player-card" id="p2-card">
-                <div class="player-header"><div class="turn-indicator">👉</div><div class="player-name" id="p2-name">Player 2</div></div>
-                <div class="dart-slots" id="p2-slots"><div class="dart-slot">-</div><div class="dart-slot">-</div><div class="dart-slot">-</div></div>
-                <div class="score-row">
-                    <div class="stats-col">
-                        <div class="stat-label">AVG</div>
-                        <div class="stat-value" id="p2-avg">0.00</div>
-                        <div class="checkout-hint" id="p2-hint"></div>
-                    </div>
-                    <div class="score-big" id="p2-score">501</div>
-                </div>
-                <div class="round-display">Legs: <span id="p2-legs">0</span></div>
-            </div>
-            <div id="logo-placeholder">LOGO / 賽事名稱</div>
-            <div id="control-panel">
-                <button id="btn-undo" onclick="undoLastDart()">復原</button>
-                <button id="btn-next" onclick="switchPlayer()">換下一位 (NEXT)</button>
-            </div>
-        </div>
+    <div class="tabs" id="tabsGroup" style="display:none;">
+      <div class="tab active" onclick="setSubView('rank')">📊 積分榜</div>
+      <div class="tab" onclick="setSubView('schedule')">📅 賽程表</div>
+    </div>
+    <div class="tabs" id="tabsKnock" style="display:none;">
+      <div class="tab active" onclick="setSubView('bracket')">🌳 樹狀圖</div>
+      <div class="tab" onclick="setSubView('schedule')">📅 賽程表</div>
     </div>
 
-    <div id="soft-tip-panel">
-        <button id="st-close" onclick="toggleSoftTip(false)">回硬靶模式</button>
-        <div style="font-size:1.5rem; color:#aaa; margin-bottom:20px;">軟靶 / 簡易計分模式</div>
-        
-        <div id="st-target-display" style="color: #ff9f43; font-weight: bold; margin-bottom: 20px; font-size: 1.2rem;"></div>
-
-        <div class="st-container">
-            <div class="st-player-col">
-                <div class="st-name" id="st-p1-name">Player 1</div>
-                <div class="st-score" id="st-p1-legs">0</div>
-                <button class="st-btn-add st-btn-p1" onclick="manualAddLeg(1)">+</button>
-            </div>
-
-            <div class="st-vs">:</div>
-
-            <div class="st-player-col">
-                <div class="st-name" id="st-p2-name">Player 2</div>
-                <div class="st-score" id="st-p2-legs">0</div>
-                <button class="st-btn-add st-btn-p2" onclick="manualAddLeg(2)">+</button>
-            </div>
-        </div>
-        <div style="margin-top:40px; color:#636e72;">點擊「+」直接增加局數 (Legs)</div>
+    <div id="groupRules" class="rulebar">
+      <span class="lbl">小組賽規則：</span>
+      <select id="gBo" class="sel">
+        <option value="3">Bo3</option><option value="5" selected>Bo5</option><option value="7">Bo7</option>
+      </select>
+      <select id="gScore" class="sel">
+        <option value="301">301</option><option value="501" selected>501</option><option value="701">701</option>
+      </select>
+      <span class="small">(全部組別共用)</span>
     </div>
+
+    <div id="finalRules" class="rulebar">
+      <span class="lbl">決賽規則：</span>
+      <select id="fBo" class="sel">
+        <option value="3" selected>Bo3</option><option value="5">Bo5</option><option value="7">Bo7</option>
+      </select>
+      <select id="fScore" class="sel">
+        <option value="301">301</option><option value="501" selected>501</option><option value="701">701</option>
+      </select>
+      <span class="small">(整個決賽淘汰賽共用)</span>
+    </div>
+
+    <div id="advWrap">
+      <button class="ctrl" style="background:#28a745;color:#fff;padding:10px 22px;border-radius:22px" onclick="generateKnockoutFromGroups()">🏆 結算成績並產生決賽表</button>
+    </div>
+    <div id="backWrap">
+      <button class="ctrl" style="background:#6c757d;color:#fff;padding:7px 16px;border-radius:18px" onclick="switchStage('group')">↩ 返回小組賽修改成績</button>
+    </div>
+  </div>
+  <div id="bContent">
+    <div id="scroll">
+      <svg id="lines"></svg>
+      <div id="groupView" class="groupGrid" style="display:none;"></div>
+      <div id="groupSchedule" class="schWrap" style="display:none;"></div>
+      <div id="bracketView" class="bracket" style="display:none;"></div>
+      <div id="knockSchedule" class="schWrap" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="left">
+    <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
+    <button id="missBtn" onclick="handleMiss()"><div>MISS</div><div style="font-size:.8rem">脫靶</div></button>
+    <button id="softBtn" onclick="toggleSoft(true)"><div>SOFT</div><div style="font-size:.8rem">軟靶</div></button>
+    <div id="overlay"><div class="t">請核對分數</div><div style="font-size:1.2rem;color:#555;font-weight:900;margin-top:10px">並按下換人鍵</div></div>
+  </div>
+  <div id="right">
+    <button id="bracketBtn" onclick="openBracket()">賽程表 / 戰績輸入</button>
+
+    <div class="player active p1" id="p1Card">
+      <div class="header"><div class="ind">👉</div><div class="name" id="p1Name">Player 1</div></div>
+      <div class="slots" id="p1Slots"><div class="slot">-</div><div class="slot">-</div><div class="slot">-</div></div>
+      <div class="row">
+        <div class="stats"><div class="lab">AVG</div><div class="val" id="p1Avg">0.00</div><div class="hint" id="p1Hint"></div></div>
+        <div class="big" id="p1Score">501</div>
+      </div>
+      <div class="round">Legs: <span id="p1Legs">0</span></div>
+    </div>
+
+    <div class="player" id="p2Card">
+      <div class="header"><div class="ind">👉</div><div class="name" id="p2Name">Player 2</div></div>
+      <div class="slots" id="p2Slots"><div class="slot">-</div><div class="slot">-</div><div class="slot">-</div></div>
+      <div class="row">
+        <div class="stats"><div class="lab">AVG</div><div class="val" id="p2Avg">0.00</div><div class="hint" id="p2Hint"></div></div>
+        <div class="big" id="p2Score">501</div>
+      </div>
+      <div class="round">Legs: <span id="p2Legs">0</span></div>
+    </div>
+
+    <div id="logo">LOGO / 賽事名稱</div>
+
+    <div id="controls">
+      <button id="undo" class="ctrl" onclick="undoLast()">復原</button>
+      <button id="next" class="ctrl" onclick="nextPlayer()">換下一位 (NEXT)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Soft tip panel (simple legs counter) -->
+<div id="softPanel" style="position:fixed;inset:0;background:#2d3436;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff">
+  <button class="ctrl" style="position:absolute;top:20px;right:20px;padding:10px 20px;background:transparent;border:2px solid #aaa;color:#aaa;border-radius:20px" onclick="toggleSoft(false)">回硬靶模式</button>
+  <div style="font-size:1.5rem;color:#aaa;margin-bottom:20px">軟靶 / 簡易計分模式</div>
+  <div id="softRule" style="color:#ff9f43;font-weight:900;margin-bottom:20px;font-size:1.2rem"></div>
+  <div style="display:flex;align-items:center;gap:40px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+      <div id="sP1Name" style="font-size:2rem;font-weight:900">Player 1</div>
+      <div id="sP1Legs" style="font-size:6rem;font-weight:900;line-height:1">0</div>
+      <button class="ctrl" style="width:80px;height:80px;border-radius:50%;font-size:2.5rem;background:#007bff;color:#fff" onclick="manualLeg(1)">+</button>
+    </div>
+    <div style="font-size:3rem;font-weight:900;color:#636e72;margin-top:-50px">:</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+      <div id="sP2Name" style="font-size:2rem;font-weight:900">Player 2</div>
+      <div id="sP2Legs" style="font-size:6rem;font-weight:900;line-height:1">0</div>
+      <button class="ctrl" style="width:80px;height:80px;border-radius:50%;font-size:2.5rem;background:#dc3545;color:#fff" onclick="manualLeg(2)">+</button>
+    </div>
+  </div>
+  <div style="margin-top:40px;color:#636e72">點擊「+」直接增加局數 (Legs)</div>
+</div>
 
 <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-        alert("程式錯誤: " + message);
+/* ========= Error trap ========= */
+window.onerror = function(message){ alert("程式錯誤: " + message); };
+
+/* ========= Dartboard rendering ========= */
+const svg = document.getElementById('dartboard');
+const SECTORS = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
+const DEG = Math.PI/180;
+
+function polar(r, angDeg){ const a=angDeg*DEG; return {x:r*Math.cos(a), y:r*Math.sin(a)}; }
+function wedgePath(startDeg, endDeg, rIn, rOut){
+  const p1=polar(rOut,startDeg), p2=polar(rOut,endDeg), p3=polar(rIn,endDeg), p4=polar(rIn,startDeg);
+  const large = (endDeg-startDeg)>180 ? 1:0;
+  return `M ${p1.x} ${p1.y} A ${rOut} ${rOut} 0 ${large} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${rIn} ${rIn} 0 ${large} 0 ${p4.x} ${p4.y} Z`;
+}
+
+let markers=[];
+
+function clearMarkers(){ markers.forEach(m=>m.remove()); markers=[]; }
+function addMarker(x,y,n,r){
+  const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r",r);
+  c.setAttribute("class",`dart-marker dart-marker-${n}`);
+  svg.appendChild(c); markers.push(c);
+}
+
+function createBoard(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const sectorAngle = 360/20;
+  SECTORS.forEach((score,i)=>{
+    const start = i*sectorAngle - 90 - sectorAngle/2;
+    const end   = start + sectorAngle;
+
+    // Single outer ring
+    drawSector(start,end,110,160,i%2===0?'area-black':'area-white', String(score), score);
+    // Triple ring
+    drawSector(start,end,80,110,i%2===0?'area-red':'area-green', `T${score}`, score*3);
+    // Single inner
+    drawSector(start,end,25,80,i%2===0?'area-black':'area-white', String(score), score);
+    // Double ring
+    drawSector(start,end,160,195,i%2===0?'area-red':'area-green', `D${score}`, score*2);
+
+    // Labels
+    drawLabel(start + sectorAngle/2, 215, String(score));
+  });
+
+  // Bulls
+  drawCircle(25,'B25',25,'area-green');
+  drawCircle(12,'B50',50,'area-red');
+}
+
+function drawSector(start,end,rIn,rOut,cls,id,val){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d", wedgePath(start,end,rIn,rOut));
+  p.setAttribute("class", cls);
+  p.dataset.id=id; p.dataset.score=String(val);
+  p.dataset.angle=String((start+end)/2);
+  p.dataset.radius=String((rIn+rOut)/2);
+  p.addEventListener('click', (e)=>window.handleHit(e));
+  svg.appendChild(p);
+}
+function drawCircle(r,id,val,cls){
+  const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx","0"); c.setAttribute("cy","0"); c.setAttribute("r",String(r));
+  c.setAttribute("class",cls);
+  c.dataset.id=id; c.dataset.score=String(val);
+  c.dataset.angle="0"; c.dataset.radius=String(r/2);
+  c.addEventListener('click',(e)=>{ e.stopPropagation(); window.handleHit(e);});
+  svg.appendChild(c);
+}
+function drawLabel(ang,r,text){
+  const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+  const p=polar(r,ang);
+  t.setAttribute("x",p.x); t.setAttribute("y",p.y);
+  t.setAttribute("class","text-label");
+  t.textContent=text;
+  svg.appendChild(t);
+}
+
+/* ========= Game state ========= */
+const SCORE_OPTIONS=[301,501,701];
+
+let GAME_MODE = 501;
+let targetLegs = 3; // first to targetLegs legs
+let currentPlayer = 1;
+let legStarter = 1;
+let turnDarts = 0;
+let isBoardLocked = false;
+let turnHitCounts = {};
+let throwHistory = [];
+
+let players = {
+  1:{name:"Player 1", score:GAME_MODE, legs:0, turn:[], matchTotalScore:0, matchTotalDarts:0},
+  2:{name:"Player 2", score:GAME_MODE, legs:0, turn:[], matchTotalScore:0, matchTotalDarts:0}
+};
+
+function syncNames(){
+  players[1].name = document.getElementById('p1Name').innerText || "Player 1";
+  players[2].name = document.getElementById('p2Name').innerText || "Player 2";
+}
+
+function resetLegValues(){
+  players[1].score = GAME_MODE; players[2].score = GAME_MODE;
+  players[1].turn = []; players[2].turn = [];
+  turnDarts = 0; isBoardLocked = false; turnHitCounts = {};
+  throwHistory = [];
+  document.getElementById('overlay').style.display='none';
+  setNextReady(false);
+  updateUI();
+  updateActiveCard();
+}
+function resetMatch(){
+  syncNames();
+  players[1].legs=0; players[2].legs=0;
+  players[1].matchTotalScore=0; players[1].matchTotalDarts=0;
+  players[2].matchTotalScore=0; players[2].matchTotalDarts=0;
+  currentPlayer = 1; legStarter = 1;
+  clearMarkers();
+  resetLegValues();
+}
+function setNextReady(ready){
+  const btn=document.getElementById('next');
+  if(ready) btn.classList.add('ready'); else btn.classList.remove('ready');
+}
+function lockBoard(){
+  isBoardLocked = true;
+  document.getElementById('overlay').style.display='flex';
+  setNextReady(true);
+}
+function updateActiveCard(){
+  const p1=document.getElementById('p1Card'), p2=document.getElementById('p2Card');
+  p1.classList.remove('active','p1'); p2.classList.remove('active','p2');
+  if(currentPlayer===1){ p1.classList.add('active','p1'); } else { p2.classList.add('active','p2'); }
+}
+function updateSlots(){
+  const p = players[currentPlayer];
+  const slots = document.getElementById(currentPlayer===1?'p1Slots':'p2Slots').querySelectorAll('.slot');
+  slots.forEach((s,i)=>{ s.className='slot'; s.textContent='-'; });
+  p.turn.forEach((d,i)=>{
+    if(i>=3) return;
+    const s=slots[i];
+    if(d.isMiss){ s.classList.add('miss'); s.textContent='MISS'; return; }
+    if(d.isBust){ s.classList.add('miss'); s.textContent='BUST'; return; }
+    s.classList.add('filled'); s.textContent = d.id;
+  });
+}
+function getAvg(pid){
+  const p=players[pid];
+  if(p.matchTotalDarts===0) return 0;
+  return (p.matchTotalScore / p.matchTotalDarts) * 3;
+}
+
+function updateUI(){
+  document.getElementById('p1Score').innerText = players[1].score;
+  document.getElementById('p2Score').innerText = players[2].score;
+  document.getElementById('p1Legs').innerText = players[1].legs;
+  document.getElementById('p2Legs').innerText = players[2].legs;
+  document.getElementById('p1Avg').innerText = getAvg(1).toFixed(2);
+  document.getElementById('p2Avg').innerText = getAvg(2).toFixed(2);
+  document.getElementById('p1Hint').innerText = getCheckoutText(players[1].score);
+  document.getElementById('p2Hint').innerText = getCheckoutText(players[2].score);
+
+  // Update both slot rows based on current turn owner
+  // For simplicity, only show current player's darts on their row; other row shows '-'
+  const resetRow=(id)=>{ document.getElementById(id).querySelectorAll('.slot').forEach(s=>{s.className='slot';s.textContent='-';}); };
+  resetRow('p1Slots'); resetRow('p2Slots');
+  updateSlots();
+}
+
+function getCheckoutText(score){
+  if(score>170 || score<2) return "";
+  const map = {
+    170:"T20 T20 Bull",
+    167:"T20 T19 Bull",
+    164:"T20 T18 Bull",
+    161:"T20 T17 Bull",
+    160:"T20 T20 D20",
+    158:"T20 T20 D19",
+    157:"T20 T19 D20",
+    156:"T20 T20 D18",
+    155:"T20 T19 D19",
+    154:"T20 T18 D20",
+    153:"T20 T19 D18",
+    152:"T20 T20 D16",
+    151:"T20 T17 D20",
+    150:"T20 T18 D18",
+    149:"T20 T19 D16",
+    148:"T20 T20 D14",
+    147:"T20 T17 D18",
+    146:"T20 T18 D16",
+    145:"T20 T15 D20",
+    144:"T20 T20 D12",
+    141:"T20 T19 D12",
+    140:"T20 T20 D10",
+    138:"T20 T18 D12",
+    137:"T20 T19 D10",
+    136:"T20 T20 D8",
+    135:"Bull T15 D20",
+    134:"T20 T14 D16",
+    133:"T20 T19 D8",
+    132:"T20 T20 D6",
+    131:"T20 T13 D16",
+    130:"T20 T20 D5",
+    127:"T20 T17 D8",
+    126:"T19 T19 D6",
+    125:"Bull T15 D10",
+    120:"T20 20 D20",
+    110:"T20 10 D20",
+    100:"T20 D20"
+  };
+  if(map[score]) return map[score];
+  if(score<=40 && score%2===0) return `D${score/2}`;
+  if(score<=50 && score%2!==0) return `1 D${(score-1)/2}`;
+  return "";
+}
+
+/* ========= Core actions ========= */
+window.handleHit = function(e){
+  if(isBoardLocked) return;
+
+  const scoreHit = parseInt(e.target.dataset.score||"0",10);
+  const hitId = e.target.dataset.id || String(scoreHit);
+  let targetAngle = parseFloat(e.target.dataset.angle||"0");
+  let targetRadius = parseFloat(e.target.dataset.radius||"0");
+
+  // spread markers within same segment
+  const key = hitId;
+  const hitCount = (turnHitCounts[key]||0)+1;
+  turnHitCounts[key]=hitCount;
+
+  let r = targetRadius;
+  if(hitId==='B25'){
+    r=19;
+    if(hitCount===1) targetAngle=-90;
+    else if(hitCount===2) targetAngle=0;
+    else if(hitCount===3) targetAngle=90;
+  } else if(hitId==='B50'){
+    if(hitCount===2) r-=5;
+    if(hitCount===3) r+=5;
+  } else {
+    const off=8;
+    if(hitCount===2) r = targetRadius - off;
+    if(hitCount===3) r = targetRadius + off;
+  }
+
+  const a=targetAngle*DEG;
+  addMarker(r*Math.cos(a), r*Math.sin(a), turnDarts+1, 4);
+
+  const p = players[currentPlayer];
+  const remaining = p.score - scoreHit;
+  const isDouble = (String(hitId).startsWith('D') || hitId==='B50');
+
+  // bust rule (double-out)
+  if(remaining<0 || remaining===1 || (remaining===0 && !isDouble)){
+    // revert this turn's scored darts (only positive)
+    p.turn.forEach(d=>{
+      if(d.score>0){ p.score += d.score; p.matchTotalScore -= d.score; }
+    });
+
+    turnDarts++; p.matchTotalDarts++;
+    p.turn.push({id:hitId,score:0,isBust:true});
+    throwHistory.push({player:currentPlayer, dart:{id:hitId,score:0,isBust:true}});
+    updateUI();
+    setTimeout(()=>{ alert("爆鏢 (BUST)！\n需雙倍區結標"); lockBoard(); }, 30);
+    return;
+  }
+
+  p.score -= scoreHit;
+  turnDarts++; p.matchTotalScore += scoreHit; p.matchTotalDarts++;
+  p.turn.push({id:hitId,score:scoreHit});
+  throwHistory.push({player:currentPlayer, dart:{id:hitId,score:scoreHit}});
+  updateUI();
+
+  if(p.score===0){
+    setTimeout(()=>{
+      syncNames();
+      const winnerName = players[currentPlayer].name || (currentPlayer===1?"Player 1":"Player 2");
+      if(confirm(`Game Shot!\n確認 ${winnerName} 結標獲勝？`)){
+        handleLegWin(currentPlayer);
+      } else {
+        undoLast();
+      }
+    },80);
+    return;
+  }
+  if(turnDarts>=3) lockBoard();
+};
+
+function handleMiss(){
+  if(isBoardLocked) return;
+  addMarker(0,0,turnDarts+1,3);
+
+  const p=players[currentPlayer];
+  turnDarts++; p.matchTotalDarts++;
+  p.turn.push({id:'MISS',score:0,isMiss:true});
+  throwHistory.push({player:currentPlayer, dart:{id:'MISS',score:0,isMiss:true}});
+  updateUI();
+  if(turnDarts>=3) lockBoard();
+}
+
+function undoLast(){
+  if(throwHistory.length===0) return;
+
+  const last = throwHistory.pop();
+  const pid = last.player;
+  const p = players[pid];
+  const d = last.dart;
+
+  // remove last marker
+  const m = markers.pop();
+  if(m) m.remove();
+
+  // remove from turn list
+  p.turn.pop();
+
+  // revert score/darts totals
+  if(d.score>0){
+    p.score += d.score;
+    p.matchTotalScore -= d.score;
+  }
+  p.matchTotalDarts = Math.max(0, p.matchTotalDarts-1);
+  turnDarts = Math.max(0, turnDarts-1);
+
+  // if we undid while board locked, unlock if <3 darts
+  if(isBoardLocked && turnDarts<3){
+    isBoardLocked=false;
+    document.getElementById('overlay').style.display='none';
+    setNextReady(false);
+  }
+  updateUI();
+}
+
+function nextPlayer(){
+  if(!isBoardLocked) return;
+  // clear current player's turn
+  players[currentPlayer].turn = [];
+  // switch player
+  currentPlayer = (currentPlayer===1)?2:1;
+  turnDarts = 0;
+  isBoardLocked = false;
+  turnHitCounts = {};
+  document.getElementById('overlay').style.display='none';
+  clearMarkers();
+  setNextReady(false);
+  updateUI();
+  updateActiveCard();
+}
+
+function handleLegWin(winner){
+  players[winner].legs++;
+  const loser = (winner===1)?2:1;
+  if(players[winner].legs>=targetLegs){
+    advanceWinner(winner);
+    return;
+  }
+  alert(`${players[winner].legs} - ${players[loser].legs}\n下一局開始`);
+  legStarter = (winner===1)?2:1;
+  currentPlayer = legStarter;
+  clearMarkers();
+  resetLegValues();
+}
+
+/* ========= Soft mode ========= */
+function toggleSoft(on){
+  document.getElementById('softPanel').style.display = on ? 'flex' : 'none';
+  if(on){
+    document.getElementById('sP1Name').innerText = document.getElementById('p1Name').innerText;
+    document.getElementById('sP2Name').innerText = document.getElementById('p2Name').innerText;
+    document.getElementById('sP1Legs').innerText = players[1].legs;
+    document.getElementById('sP2Legs').innerText = players[2].legs;
+    document.getElementById('softRule').innerText = `Bo${(targetLegs*2-1)} / ${GAME_MODE}`;
+  }
+}
+function manualLeg(pid){
+  players[pid].legs++;
+  document.getElementById(pid===1?'sP1Legs':'sP2Legs').innerText = players[pid].legs;
+  document.getElementById(pid===1?'p1Legs':'p2Legs').innerText = players[pid].legs;
+}
+
+/* ========= Bracket logic ========= */
+let TOTAL_PLAYERS = 8;
+let currentStage = 'group'; // group|final
+let subView = 'rank'; // rank|schedule|bracket
+let groupRules = {bo:5, score:501};
+let finalRules = {bo:3, score:501};
+let knockoutRoundRules = {}; // roundIndex => {bo, score}
+
+let groupsData = {}; // {A:[{id,name,wins,legsDiff}], ...}
+let groupMatches = []; // [{id,group,p1,p2,winner,score,time}]
+let matchesData = {}; // mid => {id,round,nextMatchId,time}
+let currentMatchId = null; // string (group) or number (knockout)
+
+function openBracket(){
+  document.getElementById('bracketModal').style.display='flex';
+  syncBars();
+  if(subView==='bracket') setTimeout(drawConnectors,80);
+}
+function closeBracket(){ document.getElementById('bracketModal').style.display='none'; }
+
+function initSizeOptions(){
+  const sizeSel=document.getElementById('sizeSel');
+  const fmt=document.getElementById('fmtSel').value;
+  const cur=parseInt(sizeSel.value||"8",10);
+  const opts = [4,8,16,32,64].concat(fmt==='knockout'?[128]:[]);
+  sizeSel.innerHTML='';
+  opts.forEach(v=>{
+    const o=document.createElement('option');
+    o.value=String(v);
+    if(fmt==='group'){
+      const gCount=Math.max(1, Math.ceil(v/4));
+      o.textContent = `${v}人 (分${gCount}組)`;
+    }else{
+      o.textContent = `${v}人`;
+    }
+    sizeSel.appendChild(o);
+  });
+  sizeSel.value = opts.includes(cur)? String(cur): "8";
+  TOTAL_PLAYERS = parseInt(sizeSel.value,10);
+}
+
+function syncBars(){
+  const fmt=document.getElementById('fmtSel').value;
+  const tabsG=document.getElementById('tabsGroup');
+  const tabsK=document.getElementById('tabsKnock');
+  tabsG.style.display = (fmt==='group') ? 'flex' : 'none';
+  tabsK.style.display = (fmt==='knockout') ? 'flex' : 'none';
+
+  const gbar=document.getElementById('groupRules');
+  const fbar=document.getElementById('finalRules');
+  if(fmt==='group'){
+    if(currentStage==='group'){ gbar.style.display='flex'; fbar.style.display='none'; }
+    else{ gbar.style.display='none'; fbar.style.display='flex'; }
+  }else{
+    gbar.style.display='none'; fbar.style.display='none';
+  }
+  document.getElementById('gBo').value=String(groupRules.bo);
+  document.getElementById('gScore').value=String(groupRules.score);
+  document.getElementById('fBo').value=String(finalRules.bo);
+  document.getElementById('fScore').value=String(finalRules.score);
+
+  document.getElementById('advWrap').style.display = (fmt==='group' && TOTAL_PLAYERS>4) ? 'block':'none';
+  document.getElementById('backWrap').style.display = (fmt==='group' && currentStage==='final') ? 'block':'none';
+}
+
+document.getElementById('modeSel').addEventListener('change', ()=>{ if(confirm("切換模式將重置賽程，確定嗎？")) initBracket(); });
+document.getElementById('fmtSel').addEventListener('change', ()=>{ initSizeOptions(); initBracket(); });
+document.getElementById('sizeSel').addEventListener('change', ()=>{ TOTAL_PLAYERS=parseInt(document.getElementById('sizeSel').value,10); initBracket(); });
+document.getElementById('gBo').addEventListener('change', applyGroupRules);
+document.getElementById('gScore').addEventListener('change', applyGroupRules);
+document.getElementById('fBo').addEventListener('change', applyFinalRules);
+document.getElementById('fScore').addEventListener('change', applyFinalRules);
+
+function switchStage(stage){
+  currentStage = stage;
+  // default subview
+  subView = (stage==='group') ? 'rank' : (document.getElementById('fmtSel').value==='knockout'?'bracket':'bracket');
+  setSubView(subView);
+  syncBars();
+}
+
+function setSubView(view){
+  subView = view;
+  // hide all
+  document.getElementById('groupView').style.display='none';
+  document.getElementById('groupSchedule').style.display='none';
+  document.getElementById('bracketView').style.display='none';
+  document.getElementById('knockSchedule').style.display='none';
+  document.getElementById('lines').style.display='none';
+
+  // tab active
+  const fmt=document.getElementById('fmtSel').value;
+  const tabs = (fmt==='group')? document.getElementById('tabsGroup') : document.getElementById('tabsKnock');
+  [...tabs.querySelectorAll('.tab')].forEach(t=>t.classList.remove('active'));
+
+  if(fmt==='group'){
+    if(view==='rank'){ tabs.children[0].classList.add('active'); document.getElementById('groupView').style.display='grid'; renderGroupView(); }
+    else { tabs.children[1].classList.add('active'); document.getElementById('groupSchedule').style.display='flex'; renderGroupSchedule(); }
+  }else{
+    if(view==='bracket'){ tabs.children[0].classList.add('active'); document.getElementById('bracketView').style.display='flex'; document.getElementById('lines').style.display='block'; renderKnockoutBracket(); setTimeout(drawConnectors,60); }
+    else { tabs.children[1].classList.add('active'); document.getElementById('knockSchedule').style.display='flex'; renderKnockoutSchedule(); }
+  }
+  syncBars();
+}
+
+function initBracket(){
+  matchesData={}; groupsData={}; groupMatches=[]; currentMatchId=null;
+  knockoutRoundRules={};
+  const fmt=document.getElementById('fmtSel').value;
+  if(fmt==='group'){
+    initGroupStage();
+    applyGroupRules(); // ensures all matches use same bo/score
+    switchStage('group');
+    setSubView('rank');
+  }else{
+    switchStage('final');
+    setSubView('bracket');
+  }
+  syncBars();
+}
+
+function initGroupStage(){
+  const mode=document.getElementById('modeSel').value;
+  let prefix = (mode==='single')?'Player':(mode==='double'?'Pair':'Team');
+  const perGroup=4;
+  const numGroups=Math.max(1, Math.ceil(TOTAL_PLAYERS/perGroup));
+  const alpha="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for(let g=0; g<numGroups; g++){
+    const gKey=alpha[g];
+    groupsData[gKey]=[];
+    for(let i=1;i<=perGroup;i++){
+      const globalId = g*perGroup + i;
+      if(globalId>TOTAL_PLAYERS) break;
+      groupsData[gKey].push({id:globalId,name:`${prefix} ${globalId}`,wins:0,legsDiff:0});
+    }
+    // round robin matches
+    const p=groupsData[gKey];
+    const add=(a,b)=>{
+      groupMatches.push({id:`G-${gKey}-${a.id}-${b.id}`,group:gKey,p1:a.id,p2:b.id,winner:null,score:null,time:'',bo:groupRules.bo,scoreMode:groupRules.score});
     };
+    for(let i=0;i<p.length;i++){
+      for(let j=i+1;j<p.length;j++) add(p[i],p[j]);
+    }
+  }
+}
 
-    window.addEventListener('beforeunload', function (e) { e.preventDefault(); e.returnValue = ''; });
+function updatePlayerName(gKey,pid,v){
+  const p = groupsData[gKey].find(x=>x.id===pid);
+  if(p) p.name=v;
+}
+function updateDoubleName(el,gKey,pid){
+  const wrap=el.closest('.doubleRow');
+  const ins=[...wrap.querySelectorAll('input')];
+  const v1=ins[0].value.trim(), v2=ins[1].value.trim();
+  const combined = v2 ? `${v1} / ${v2}` : v1;
+  updatePlayerName(gKey,pid,combined);
+}
 
-    let TOTAL_PLAYERS = 8;
-    let matchesData = {};
-    
-    let currentStage = 'group'; // group or final
-    let currentSubView = 'rankings'; // rankings, schedule, bracket
-    let groupsData = {}; 
-    let groupMatches = []; 
-    let currentMatchId = null; 
-    let targetLegs = 3;
+function renderGroupView(){
+  const cont=document.getElementById('groupView');
+  cont.innerHTML='';
+  const keys=Object.keys(groupsData).sort();
+  const mode=document.getElementById('modeSel').value;
+  let colTitle="選手 (可編輯)";
+  if(mode==='double') colTitle="搭擋 (Pair)";
+  if(mode==='team') colTitle="隊伍 (Team)";
+  keys.forEach(k=>{
+    const box=document.createElement('div');
+    box.className='gbox';
+    const sorted=[...groupsData[k]].sort((a,b)=> (b.wins-a.wins) || (b.legsDiff-a.legsDiff));
+    let html = `<div class="gtitle">Group ${k}</div>
+    <table class="stand">
+      <tr><th style="width:60%">${colTitle}</th><th>勝</th><th>Diff</th></tr>`;
+    sorted.forEach((p,idx)=>{
+      const cls = idx===0?'rank1':(idx===1?'rank2':'');
+      let input='';
+      if(mode==='double'){
+        const parts=p.name.split('/');
+        const v1=(parts[0]||'').trim(), v2=(parts[1]||'').trim();
+        input = `<div class="doubleRow">
+          <input class="nameInput nameHalf" value="${escapeHtml(v1)}" placeholder="選手A" oninput="updateDoubleName(this,'${k}',${p.id})">
+          <span class="sep">/</span>
+          <input class="nameInput nameHalf" value="${escapeHtml(v2)}" placeholder="選手B" oninput="updateDoubleName(this,'${k}',${p.id})">
+        </div>`;
+      }else{
+        input = `<input class="nameInput" value="${escapeHtml(p.name)}" placeholder="姓名" oninput="updatePlayerName('${k}',${p.id},this.value)">`;
+      }
+      html += `<tr class="${cls}"><td>${input}</td><td>${p.wins}</td><td>${p.legsDiff>0?('+'+p.legsDiff):p.legsDiff}</td></tr>`;
+    });
+    html += `</table>`;
+    box.innerHTML=html;
+    cont.appendChild(box);
+  });
+}
+function renderGroupSchedule(){
+  const cont=document.getElementById('groupSchedule');
+  const ruleText = `Bo${groupRules.bo} / ${groupRules.score}`;
+  let html = `<div style="width:100%;max-width:1000px;margin:0 auto 10px;color:#666;font-weight:900">
+    小組賽統一規則：<span style="color:#007bff">${ruleText}</span>
+  </div>`;
+  html += `<table class="table"><thead><tr>
+    <th>場次</th><th>時間</th><th>組別</th><th>對戰組合</th><th>規則</th><th>比分</th><th>操作</th>
+  </tr></thead><tbody>`;
+  groupMatches.forEach((m,idx)=>{
+    const p1=groupsData[m.group].find(x=>x.id===m.p1);
+    const p2=groupsData[m.group].find(x=>x.id===m.p2);
+    const scoreDisp = m.winner ? `<span class="tag done">${m.score}</span>` : `<span class="tag">-</span>`;
+    const btnCls = m.winner ? 'play disabled':'play';
+    html += `<tr>
+      <td>#${idx+1}</td>
+      <td><input class="time" value="${escapeHtml(m.time||'')}" placeholder="00:00" onchange="updateMatchTime('G','${m.id}',this.value)"></td>
+      <td>Group ${m.group}</td>
+      <td>${escapeHtml(p1.name)} <span style="color:#999;font-size:.8em">vs</span> ${escapeHtml(p2.name)}</td>
+      <td><span class="tag">${ruleText}</span></td>
+      <td>${scoreDisp}</td>
+      <td><div class="${btnCls}" onclick="loadGroupMatch('${m.id}')">載入</div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  cont.innerHTML=html;
+}
 
-    let GAME_MODE = 501; 
-    
-    let currentPlayer = 1, legStarter = 1, turnDarts = 0, isBoardLocked = false;
-    let players = { 
-        1: { score: GAME_MODE, legs: 0, roundHistory: [], matchTotalScore: 0, matchTotalDarts: 0 }, 
-        2: { score: GAME_MODE, legs: 0, roundHistory: [], matchTotalScore: 0, matchTotalDarts: 0 } 
-    };
-    let throwHistory = [];
-    let turnHitCounts = {}; 
-    let markers = [];
+function applyGroupRules(){
+  groupRules.bo=parseInt(document.getElementById('gBo').value,10);
+  groupRules.score=parseInt(document.getElementById('gScore').value,10);
+  groupMatches.forEach(m=>{ m.bo=groupRules.bo; m.scoreMode=groupRules.score; });
+  if(subView==='schedule' && currentStage==='group') renderGroupSchedule();
+  syncBars();
+}
+function applyFinalRules(){
+  finalRules.bo=parseInt(document.getElementById('fBo').value,10);
+  finalRules.score=parseInt(document.getElementById('fScore').value,10);
+  // if we are in final-from-groups stage, sync all round selects
+  const rounds = Math.log2(TOTAL_PLAYERS)||0;
+  for(let r=0;r<rounds;r++){ knockoutRoundRules[r]={bo:finalRules.bo,score:finalRules.score}; }
+  if(subView==='schedule' && currentStage==='final') renderKnockoutSchedule();
+  syncBars();
+}
 
-    window.onload = function() { 
-        createBoard(); 
-        updateSizeOptions(); 
-        setTimeout(initBracketStructure, 50); 
-    };
-    
-    // === 視窗控制函式 ===
-    function openBracket() {
-        document.getElementById('bracket-modal').style.display = 'flex';
-        if (currentSubView === 'bracket') {
-            setTimeout(drawConnectors, 100); 
+function loadGroupMatch(id){
+  const m=groupMatches.find(x=>x.id===id);
+  if(m.winner){ alert("這場比賽已經結束"); return; }
+  const p1=groupsData[m.group].find(x=>x.id===m.p1);
+  const p2=groupsData[m.group].find(x=>x.id===m.p2);
+  const legsNeeded = Math.ceil(groupRules.bo/2);
+  if(!confirm(`載入 Group ${m.group} 對戰？\n${p1.name} vs ${p2.name}\n規則：Bo${groupRules.bo}（搶 ${legsNeeded} 勝） / ${groupRules.score}`)) return;
+
+  currentMatchId=id;
+  targetLegs = legsNeeded;
+  GAME_MODE = groupRules.score;
+  document.getElementById('p1Name').innerText = p1.name;
+  document.getElementById('p2Name').innerText = p2.name;
+  players[1].name=p1.name; players[2].name=p2.name;
+  document.getElementById('softRule').innerText = `Bo${groupRules.bo} / ${groupRules.score}`;
+  resetMatch();
+  closeBracket();
+}
+
+function generateKnockoutFromGroups(){
+  const keys=Object.keys(groupsData).sort();
+  const numGroups=keys.length;
+  const hasGames = groupMatches.some(m=>m.winner);
+  let msg="確定要產生決賽賽程表嗎？";
+  msg += hasGames ? "\n(將依照目前小組成績，自動填入晉級名單)" : "\n(目前無小組賽成績，將產生空白賽程表)";
+  if(!confirm(msg)) return;
+
+  let finalSize = (numGroups===1)?2:(numGroups*2);
+  TOTAL_PLAYERS = finalSize;
+  initSizeOptions(); // refresh selector display (not strictly required)
+  switchStage('final');
+  // build bracket skeleton
+  renderKnockoutBracket(true); // from groups
+  // force all rounds use finalRules
+  const rounds=Math.log2(TOTAL_PLAYERS)||0;
+  for(let r=0;r<rounds;r++){ knockoutRoundRules[r]={bo:finalRules.bo,score:finalRules.score}; }
+  // fill names
+  if(hasGames){
+    if(numGroups===1){
+      const g=keys[0];
+      const top=[...groupsData[g]].sort((a,b)=>(b.wins-a.wins)||(b.legsDiff-a.legsDiff)).slice(0,2);
+      if(top.length===2){ setMatchName(0,1,top[0].name); setMatchName(0,2,top[1].name); }
+    }else{
+      // pair groups A vs B, C vs D...
+      let mid=0;
+      for(let i=0;i<numGroups;i+=2){
+        if(i+1>=numGroups) break;
+        const g1=keys[i], g2=keys[i+1];
+        const top2=(g)=>[...groupsData[g]].sort((a,b)=>(b.wins-a.wins)||(b.legsDiff-a.legsDiff)).slice(0,2);
+        const t1=top2(g1), t2=top2(g2);
+        if(t1.length<2 || t2.length<2) continue;
+        // cross: g1#1 vs g2#2 ; g2#1 vs g1#2
+        setMatchName(mid,1,t1[0].name); setMatchName(mid,2,t2[1].name);
+        setMatchName(mid+1,1,t2[0].name); setMatchName(mid+1,2,t1[1].name);
+        mid += 2;
+      }
+    }
+  }
+  setSubView('bracket');
+  setTimeout(drawConnectors,120);
+  syncBars();
+}
+
+function renderKnockoutBracket(fromGroups=false){
+  const cont=document.getElementById('bracketView');
+  cont.innerHTML='';
+  matchesData={};
+  const mode=document.getElementById('modeSel').value;
+  const defName = (mode==='single')?'Player':(mode==='double'?'Pair':'Team');
+  const rounds=Math.log2(TOTAL_PLAYERS);
+  let matchCounter=0;
+  let matchesInRound = TOTAL_PLAYERS/2;
+
+  for(let r=0;r<rounds;r++){
+    const col=document.createElement('div');
+    col.className='roundCol';
+
+    const header=document.createElement('div');
+    header.className='roundHeader';
+    let title = (r===rounds-1)?"Final (冠軍賽)":(matchesInRound===2?"Semi-Final (準決賽)":`Round ${r+1}`);
+
+    // defaults
+    const defaultBo = fromGroups ? finalRules.bo : (r===rounds-1?7:(r>0?5:3));
+    const defaultScore = fromGroups ? finalRules.score : 501;
+    if(!knockoutRoundRules[r]) knockoutRoundRules[r] = {bo:defaultBo, score:defaultScore};
+
+    header.innerHTML = `<div class="roundTitle">${title}</div>
+      <div style="display:flex;gap:8px;justify-content:center;align-items:center;">
+        <select id="koBo${r}" class="sel" style="padding:0;font-size:.8rem" onchange="onRoundRuleChange(${r},${fromGroups})">
+          <option value="3"${knockoutRoundRules[r].bo===3?' selected':''}>Bo3</option>
+          <option value="5"${knockoutRoundRules[r].bo===5?' selected':''}>Bo5</option>
+          <option value="7"${knockoutRoundRules[r].bo===7?' selected':''}>Bo7</option>
+        </select>
+        <select id="koSc${r}" class="sel" style="padding:0;font-size:.8rem" onchange="onRoundRuleChange(${r},${fromGroups})">
+          <option value="301"${knockoutRoundRules[r].score===301?' selected':''}>301</option>
+          <option value="501"${knockoutRoundRules[r].score===501?' selected':''}>501</option>
+          <option value="701"${knockoutRoundRules[r].score===701?' selected':''}>701</option>
+        </select>
+      </div>`;
+    col.appendChild(header);
+
+    for(let i=0;i<matchesInRound;i++){
+      const mid=matchCounter++;
+      matchesData[mid]={id:mid,round:r,nextMatchId:null,time:''};
+
+      const card=document.createElement('div');
+      card.className='match';
+      card.id=`match-${mid}`;
+      card.onclick=()=>selectMatch(mid);
+
+      const teamInput=(tn)=>{
+        if(mode==='double'){
+          return `<div class="team" style="padding:2px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">
+            <input id="m${mid}t${tn}a" class="inp" placeholder="選手A" onclick="event.stopPropagation()" style="width:40%;min-width:0;text-align:center;padding:2px;font-size:14px">
+            <span style="flex:0 0 auto;font-weight:900;color:#999">/</span>
+            <input id="m${mid}t${tn}b" class="inp" placeholder="選手B" onclick="event.stopPropagation()" style="width:40%;min-width:0;text-align:center;padding:2px;font-size:14px">
+          </div>`;
         }
+        return `<div class="team"><input id="m${mid}t${tn}a" class="inp" placeholder="${r===0?defName:'Winner'}" onclick="event.stopPropagation()"></div>`;
+      };
+
+      card.innerHTML = `<div class="mlab">Match ${mid+1}</div>${teamInput(1)}<div class="vs">VS</div>${teamInput(2)}`;
+      col.appendChild(card);
     }
 
-    function closeBracket() {
-        document.getElementById('bracket-modal').style.display = 'none';
+    cont.appendChild(col);
+    matchesInRound/=2;
+  }
+
+  // set next links
+  let start=0, count=TOTAL_PLAYERS/2;
+  for(let r=0;r<rounds-1;r++){
+    const nextStart=start+count;
+    for(let i=0;i<count;i++){
+      const cid=start+i;
+      const tid=nextStart+Math.floor(i/2);
+      matchesData[cid].nextMatchId=tid;
     }
+    start+=count;
+    count/=2;
+  }
 
-    // === 新增：更改分數模式函式 ===
-    function changeTargetScore() {
-        const val = document.getElementById('score-selector').value;
-        GAME_MODE = parseInt(val);
-        // 如果當前遊戲還沒開始 (分數還是舊的預設值)，就順便重置一下
-        resetGame();
+  // if from groups, enforce all header selects to finalRules
+  if(fromGroups){
+    const rounds=Math.log2(TOTAL_PLAYERS)||0;
+    for(let r=0;r<rounds;r++){
+      document.getElementById(`koBo${r}`).value=String(finalRules.bo);
+      document.getElementById(`koSc${r}`).value=String(finalRules.score);
     }
+  }
 
-    // === 軟靶模式控制邏輯 ===
-    function toggleSoftTip(show) {
-        const panel = document.getElementById('soft-tip-panel');
-        if (show) {
-            document.getElementById('st-p1-name').innerText = document.getElementById('p1-name').innerText;
-            document.getElementById('st-p2-name').innerText = document.getElementById('p2-name').innerText;
-            document.getElementById('st-p1-legs').innerText = players[1].legs;
-            document.getElementById('st-p2-legs').innerText = players[2].legs;
-            
-            // ★ 新增：顯示目標局數
-            document.getElementById('st-target-display').innerText = `賽制：搶 ${targetLegs} 勝 (Race to ${targetLegs})`;
+  renderKnockoutSchedule();
+}
 
-            panel.style.display = 'flex';
-        } else {
-            panel.style.display = 'none';
-            updateUI(); 
-        }
+function onRoundRuleChange(roundIdx, fromGroups){
+  const bo=parseInt(document.getElementById(`koBo${roundIdx}`).value,10);
+  const sc=parseInt(document.getElementById(`koSc${roundIdx}`).value,10);
+
+  if(fromGroups){
+    // sync finalRules + all rounds
+    finalRules.bo=bo; finalRules.score=sc;
+    const rounds=Math.log2(TOTAL_PLAYERS)||0;
+    for(let r=0;r<rounds;r++){
+      knockoutRoundRules[r]={bo:bo,score:sc};
+      const b=document.getElementById(`koBo${r}`), s=document.getElementById(`koSc${r}`);
+      if(b) b.value=String(bo);
+      if(s) s.value=String(sc);
     }
-
-    function manualAddLeg(pid) {
-        players[pid].legs++;
-        document.getElementById(`st-p${pid}-legs`).innerText = players[pid].legs;
-        
-        if (players[pid].legs >= targetLegs) {
-            setTimeout(() => {
-                advanceWinner(pid); 
-                toggleSoftTip(false); 
-                resetGame(); 
-            }, 100);
-        }
-    }
-    // ===========================
-
-    function updateSizeOptions() {
-        const format = document.getElementById('format-selector').value;
-        const sizeSelect = document.getElementById('size-selector');
-        
-        let currentValue = parseInt(sizeSelect.value);
-        if(isNaN(currentValue)) currentValue = 8;
-
-        sizeSelect.innerHTML = ''; 
-
-        let options = [4, 8, 16, 32, 64];
-        if (format === 'knockout') {
-            options.push(128);
-        }
-
-        options.forEach(val => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            if (format === 'group') {
-                const groupCount = Math.max(1, Math.ceil(val / 4));
-                opt.text = `${val}人 (分${groupCount}組)`;
-            } else {
-                opt.text = `${val}人`;
-            }
-            sizeSelect.appendChild(opt);
-        });
-
-        if (options.includes(currentValue)) {
-            sizeSelect.value = currentValue;
-        } else {
-            if (currentValue > 64 && format === 'group') currentValue = 64;
-            else currentValue = 8;
-            sizeSelect.value = currentValue;
-        }
-        TOTAL_PLAYERS = currentValue;
-    }
-
-    function changeGameMode() {
-        if(confirm("切換模式將重置賽程，確定嗎？")) {
-            initBracketStructure();
-        }
-    }
-
-    function changeBracketFormat() {
-        const fmtEl = document.getElementById('format-selector');
-        updateSizeOptions(); 
-        initBracketStructure(); 
-    }
-
-    function changeBracketSize() {
-        const sizeEl = document.getElementById('size-selector');
-        TOTAL_PLAYERS = parseInt(sizeEl.value);
-        initBracketStructure();
-    }
-
-    function initBracketStructure() {
-        matchesData = {};
-        const fmtEl = document.getElementById('format-selector');
-        if (!fmtEl) return;
-        const format = fmtEl.value;
-        
-        document.getElementById('advance-btn-container').style.display = 'none';
-        document.getElementById('back-to-group-container').style.display = 'none';
-
-        if (format === 'group') {
-            if (TOTAL_PLAYERS > 4) {
-                document.getElementById('advance-btn-container').style.display = 'block';
-            }
-            initGroupStage();
-            switchStageView('group');
-            setSubView('rankings'); 
-        } else {
-            switchStageView('final');
-            renderKnockoutBracket(); 
-            setSubView('bracket'); 
-        }
-    }
-
-    function setSubView(sub) {
-        currentSubView = sub;
-        const isGroup = (currentStage === 'group');
-        
-        document.getElementById('group-stage-container').style.display = 'none';
-        document.getElementById('group-schedule-container').style.display = 'none';
-        document.getElementById('bracket-container').style.display = 'none';
-        document.getElementById('knockout-schedule-container').style.display = 'none';
-        document.getElementById('bracket-lines').style.display = 'none';
-
-        const tabs = isGroup ? document.getElementById('group-tabs') : document.getElementById('knockout-tabs');
-        const tabBtns = tabs.getElementsByClassName('view-tab');
-        for(let btn of tabBtns) btn.classList.remove('active');
-        
-        if (isGroup) {
-            if (sub === 'rankings') {
-                document.getElementById('group-stage-container').style.display = 'grid';
-                tabBtns[0].classList.add('active');
-                renderGroupView(); 
-            } else {
-                document.getElementById('group-schedule-container').style.display = 'flex';
-                tabBtns[1].classList.add('active');
-                renderGroupSchedule(); 
-            }
-        } else {
-            if (sub === 'bracket') {
-                document.getElementById('bracket-container').style.display = 'flex';
-                document.getElementById('bracket-lines').style.display = 'block';
-                tabBtns[0].classList.add('active');
-                requestAnimationFrame(() => { setTimeout(drawConnectors, 50); });
-            } else {
-                document.getElementById('knockout-schedule-container').style.display = 'flex';
-                tabBtns[1].classList.add('active');
-                renderKnockoutSchedule();
-            }
-        }
-    }
-
-    function initGroupStage() {
-        groupsData = {};
-        groupMatches = [];
-        
-        const mode = document.getElementById('mode-selector').value; 
-        let namePrefix = "Player";
-        if (mode === 'double') namePrefix = "Pair";
-        if (mode === 'team') namePrefix = "Team";
-
-        const playersPerGroup = 4;
-        const numGroups = Math.max(1, Math.ceil(TOTAL_PLAYERS / playersPerGroup));
-        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-        for (let g = 0; g < numGroups; g++) {
-            const gName = alphabet[g]; 
-            groupsData[gName] = [];
-            
-            for (let i = 1; i <= playersPerGroup; i++) {
-                const globalId = (g * playersPerGroup) + i;
-                if (globalId > TOTAL_PLAYERS) break; 
-                groupsData[gName].push({ id: globalId, name: `${namePrefix} ${globalId}`, wins: 0, legsDiff: 0 });
-            }
-
-            const p = groupsData[gName];
-            if (p.length >= 2) {
-                const add = (p1, p2) => {
-                    groupMatches.push({
-                        id: `G-${gName}-${p1.id}-${p2.id}`,
-                        group: gName, p1: p1.id, p2: p2.id,
-                        winner: null, score: null, time: '' 
-                    });
-                };
-                
-                if (p.length === 4) {
-                    add(p[0], p[1]); add(p[2], p[3]); 
-                    add(p[0], p[2]); add(p[1], p[3]); 
-                    add(p[0], p[3]); add(p[1], p[2]); 
-                } else if (p.length === 2) {
-                    add(p[0], p[1]);
-                } else {
-                     for (let i = 0; i < p.length; i++) {
-                        for (let j = i + 1; j < p.length; j++) {
-                            add(p[i], p[j]);
-                        }
-                     }
-                }
-            }
-        }
-    }
-
-    function updateDoubleName(inputEl, group, pid, partIndex) {
-        const container = inputEl.parentElement;
-        const inputs = container.querySelectorAll('input');
-        const val1 = inputs[0].value.trim();
-        const val2 = inputs[1].value.trim();
-        let combinedName = val1;
-        if (val2) combinedName += ` / ${val2}`;
-        else if (partIndex === 0 && !val1 && !val2) combinedName = "";
-        if (partIndex === 0 && !val2 && val1) combinedName = val1; 
-        if (val1 && val2) combinedName = `${val1} / ${val2}`;
-        const player = groupsData[group].find(p => p.id === pid);
-        if(player) player.name = combinedName;
-    }
-
-    function renderGroupView() {
-        const container = document.getElementById('group-stage-container');
-        container.innerHTML = '';
-        const groupKeys = Object.keys(groupsData).sort();
-        
-        const mode = document.getElementById('mode-selector').value;
-        let colTitle = "選手 (可編輯)";
-        let placeholderText = "姓名";
-        if (mode === 'double') { colTitle = "搭擋 (Pair)"; }
-        if (mode === 'team') { colTitle = "隊伍 (Team)"; placeholderText = "請輸入隊名"; }
-
-        groupKeys.forEach(gKey => {
-            const gDiv = document.createElement('div');
-            gDiv.className = 'group-box';
-            
-            let sortedPlayers = [...groupsData[gKey]].sort((a,b) => {
-                if(b.wins !== a.wins) return b.wins - a.wins;
-                return b.legsDiff - a.legsDiff;
-            });
-
-            let tableHtml = `<div class="group-header-text">Group ${gKey}</div>
-            <table class="standings-table">
-                <tr><th style="width:60%">${colTitle}</th><th>勝</th><th>Diff</th></tr>`;
-            
-            sortedPlayers.forEach((p, idx) => {
-                let rankClass = idx < 2 ? `rank-${idx+1}` : '';
-                let inputHtml = '';
-                if (mode === 'double') {
-                    let parts = p.name.split('/');
-                    let v1 = parts[0] ? parts[0].trim() : '';
-                    let v2 = parts[1] ? parts[1].trim() : '';
-                    if (p.name.startsWith("Pair")) { v1 = p.name; v2 = ""; }
-                    inputHtml = `<div class="double-input-group">
-                        <input class="name-input half" value="${v1}" placeholder="選手A" oninput="updateDoubleName(this, '${gKey}', ${p.id}, 0)">
-                        <span class="separator">/</span>
-                        <input class="name-input half" value="${v2}" placeholder="選手B" oninput="updateDoubleName(this, '${gKey}', ${p.id}, 1)">
-                    </div>`;
-                } else {
-                    inputHtml = `<input class="name-input" value="${p.name}" placeholder="${placeholderText}" oninput="updatePlayerName('${gKey}', ${p.id}, this.value)">`;
-                }
-                tableHtml += `<tr class="${rankClass}">
-                    <td>${inputHtml}</td>
-                    <td>${p.wins}</td>
-                    <td>${p.legsDiff>0?'+'+p.legsDiff:p.legsDiff}</td>
-                </tr>`;
-            });
-            tableHtml += `</table>`;
-            gDiv.innerHTML = tableHtml;
-            container.appendChild(gDiv);
-        });
-    }
-
-    function renderGroupSchedule() {
-        const container = document.getElementById('group-schedule-container');
-        container.innerHTML = '';
-        
-        let html = `<table class="schedule-table">
-            <thead><tr><th>場次</th><th>時間</th><th>組別</th><th>對戰組合</th><th>比分</th><th>操作</th></tr></thead>
-            <tbody>`;
-            
-        groupMatches.forEach((m, idx) => {
-            const p1Data = groupsData[m.group].find(x=>x.id===m.p1);
-            const p2Data = groupsData[m.group].find(x=>x.id===m.p2);
-            
-            const scoreDisplay = m.winner ? `<span class="score-tag done">${m.score}</span>` : `<span class="score-tag">-</span>`;
-            const statusClass = m.winner ? 'play-btn disabled' : 'play-btn';
-            
-            html += `<tr>
-                <td>#${idx+1}</td>
-                <td><input class="time-input" value="${m.time||''}" placeholder="00:00" onchange="updateMatchTime('G', '${m.id}', this.value)"></td>
-                <td>Group ${m.group}</td>
-                <td>${p1Data.name} <span style="color:#999;font-size:0.8em">vs</span> ${p2Data.name}</td>
-                <td>${scoreDisplay}</td>
-                <td><div class="${statusClass}" onclick="loadGroupMatch('${m.id}')">載入</div></td>
-            </tr>`;
-        });
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-    }
-
-    function renderKnockoutSchedule() {
-        const container = document.getElementById('knockout-schedule-container');
-        container.innerHTML = '';
-        
-        let html = `<table class="schedule-table">
-            <thead><tr><th>場次</th><th>時間</th><th>賽事階段</th><th>對戰組合</th><th>比分</th><th>操作</th></tr></thead>
-            <tbody>`;
-            
-        let matches = Object.values(matchesData).sort((a,b) => a.id - b.id);
-        
-        matches.forEach(m => {
-            const p1Val = getMatchInput(m.id, 1) || "待定";
-            const p2Val = getMatchInput(m.id, 2) || "待定";
-            
-            html += `<tr>
-                <td>M${m.id + 1}</td>
-                <td><input class="time-input" value="${m.time||''}" placeholder="00:00" onchange="updateMatchTime('K', ${m.id}, this.value)"></td>
-                <td>Round ${m.round+1}</td>
-                <td>${p1Val} vs ${p2Val}</td>
-                <td>-</td>
-                <td><div class="play-btn" onclick="selectMatch(${m.id})">載入</div></td>
-            </tr>`;
-        });
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-    }
-
-    function updateMatchTime(type, id, val) {
-        if (type === 'G') {
-            const m = groupMatches.find(x => x.id === id);
-            if(m) m.time = val;
-        } else {
-            if(matchesData[id]) matchesData[id].time = val;
-        }
-    }
-
-    function updatePlayerName(group, pid, newName) {
-        const player = groupsData[group].find(p => p.id === pid);
-        if(player) player.name = newName;
-    }
-
-    function loadGroupMatch(mId) {
-        const match = groupMatches.find(m => m.id === mId);
-        if(match.winner) { alert("這場比賽已經結束"); return; }
-        const p1Data = groupsData[match.group].find(x=>x.id===match.p1);
-        const p2Data = groupsData[match.group].find(x=>x.id===match.p2);
-        if(confirm(`載入 Group ${match.group} 對戰？\n${p1Data.name} vs ${p2Data.name}`)) {
-            currentMatchId = mId; targetLegs = 2; 
-            document.getElementById('p1-name').innerText = p1Data.name;
-            document.getElementById('p2-name').innerText = p2Data.name;
-            resetGame(); closeBracket();
-        }
-    }
-
-    function generateKnockoutFromGroups() {
-        const hasGames = Object.values(groupsData).some(grp => grp.some(p => p.wins > 0 || p.legsDiff !== 0));
-        let confirmMsg = "確定要產生決賽賽程表嗎？";
-        if (!hasGames) confirmMsg += "\n(目前無小組賽成績，將產生空白賽程表)";
-        else confirmMsg += "\n(將依照目前小組成績，自動填入晉級名單)";
-
-        if(!confirm(confirmMsg)) return;
-
-        const groupKeys = Object.keys(groupsData).sort(); 
-        const numGroups = groupKeys.length;
-        
-        let finalSize = numGroups * 2;
-        if (numGroups === 1) finalSize = 2;
-
-        TOTAL_PLAYERS = finalSize; 
-        
-        switchStageView('final');
-        renderKnockoutBracket(); 
-
-        if (hasGames) {
-            setTimeout(() => {
-                if (numGroups === 1) {
-                     const g1 = groupKeys[0];
-                     const top = [...groupsData[g1]].sort((a,b) => (b.wins-a.wins) || (b.legsDiff-a.legsDiff)).slice(0, 2);
-                     if (top.length >= 2) {
-                        setMatchInput(0, 1, top[0].name);
-                        setMatchInput(0, 2, top[1].name);
-                     }
-                } else {
-                    for (let i = 0; i < numGroups; i += 2) {
-                        if (i + 1 >= numGroups) break; 
-                        const g1 = groupKeys[i];
-                        const g2 = groupKeys[i+1];
-                        const getTop2 = (g) => [...groupsData[g]].sort((a,b) => (b.wins-a.wins) || (b.legsDiff-a.legsDiff)).slice(0, 2);
-                        const top1 = getTop2(g1);
-                        const top2 = getTop2(g2);
-                        if (top1.length < 2 || top2.length < 2) continue;
-
-                        const matchIndexBase = i; 
-                        setMatchInput(matchIndexBase, 1, top1[0].name);
-                        setMatchInput(matchIndexBase, 2, top2[1].name);
-                        setMatchInput(matchIndexBase+1, 1, top2[0].name);
-                        setMatchInput(matchIndexBase+1, 2, top1[1].name);
-                    }
-                }
-                drawConnectors();
-            }, 150);
-        } else {
-            setTimeout(drawConnectors, 150);
-        }
-    }
-
-    function renderKnockoutBracket() {
-        const container = document.getElementById('bracket-container');
-        container.innerHTML = '';
-        
-        const scrollView = document.getElementById('bracket-scroll-view');
-        scrollView.scrollLeft = 0;
-        scrollView.scrollTop = 0;
-
-        const mode = document.getElementById('mode-selector').value; 
-        let defaultName = "Player";
-        if (mode === 'double') defaultName = "Pair";
-        if (mode === 'team') defaultName = "Team";
-
-        const totalRounds = Math.log2(TOTAL_PLAYERS);
-        let matchCounter = 0;
-        let matchesInRound = TOTAL_PLAYERS / 2;
-
-        for (let r = 0; r < totalRounds; r++) {
-            const roundDiv = document.createElement('div');
-            roundDiv.className = 'round-column';
-            const header = document.createElement('div');
-            header.className = 'round-header';
-            
-            let titleText = (r === totalRounds - 1) ? "Final (冠軍賽)" : (matchesInRound === 2 ? "Semi-Final (準決賽)" : `Round ${r+1}`);
-            let defaultBo = (r === totalRounds - 1) ? 7 : (r > 0 ? 5 : 3);
-
-            header.innerHTML = `<div class="round-title">${titleText}</div>
-                <select id="fmt-r${r}" class="control-select" style="padding:0; font-size:0.8rem;">
-                    <option value="3" ${defaultBo===3?'selected':''}>Bo3</option>
-                    <option value="5" ${defaultBo===5?'selected':''}>Bo5</option>
-                    <option value="7" ${defaultBo===7?'selected':''}>Bo7</option>
-                </select>`;
-            roundDiv.appendChild(header);
-
-            for (let i = 0; i < matchesInRound; i++) {
-                const mid = matchCounter++;
-                matchesData[mid] = { id: mid, round: r, nextMatchId: null, time: '' };
-                const card = document.createElement('div');
-                card.className = `match-card`;
-                card.id = `match-card-${mid}`;
-                card.onclick = () => selectMatch(mid);
-                
-                // ★ 修改處：強制雙人賽橫向排列 (flex-direction: row)
-                const genInput = (tn) => {
-                    if (mode === 'double') {
-                         return `<div class="team-block" style="padding:2px; display:flex; flex-direction:row; align-items:center;">
-                             <input id="m${mid}-t${tn}-p0" class="bracket-input" placeholder="選手A" onclick="event.stopPropagation()" style="width: 40%; min-width:0; padding:2px; font-size:14px; text-align:center;">
-                             <span style="flex:0 0 auto; margin:0 4px; font-weight:bold; color:#999;">/</span>
-                             <input id="m${mid}-t${tn}-p1" class="bracket-input" placeholder="選手B" onclick="event.stopPropagation()" style="width: 40%; min-width:0; padding:2px; font-size:14px; text-align:center;">
-                         </div>`;
-                    }
-                    return `<div class="team-block"><input id="m${mid}-t${tn}-p0" class="bracket-input" placeholder="${r===0? defaultName :'Winner'}" onclick="event.stopPropagation()"></div>`;
-                };
-                
-                card.innerHTML = `<div class="match-label">Match ${mid+1}</div>${genInput(1)}<div class="vs-text">VS</div>${genInput(2)}`;
-                roundDiv.appendChild(card);
-            }
-            container.appendChild(roundDiv);
-            matchesInRound /= 2;
-        }
-
-        let currentStartId = 0;
-        let currentCount = TOTAL_PLAYERS / 2;
-        for (let r = 0; r < totalRounds - 1; r++) {
-            const nextRoundStartId = currentStartId + currentCount;
-            for (let i = 0; i < currentCount; i++) {
-                const currentId = currentStartId + i;
-                const targetId = nextRoundStartId + Math.floor(i / 2);
-                matchesData[currentId].nextMatchId = targetId;
-            }
-            currentStartId += currentCount;
-            currentCount /= 2;
-        }
-        requestAnimationFrame(() => {
-            setTimeout(drawConnectors, 50);
-        });
-    }
-
-    // ★ 小幫手函式：設定比賽名字 (支援雙欄位)
-    function setMatchInput(mid, teamNum, name) {
-        const targetP0 = document.getElementById(`m${mid}-t${teamNum}-p0`);
-        const targetP1 = document.getElementById(`m${mid}-t${teamNum}-p1`);
-        if (targetP1) {
-            let parts = name.split(' / ');
-            if(parts.length < 2) parts = name.split(' & '); 
-            targetP0.value = parts[0] || name;
-            targetP1.value = parts[1] || "";
-        } else {
-            if(targetP0) targetP0.value = name;
-        }
-    }
-
-    // ★ 小幫手函式：讀取比賽名字 (支援雙欄位合併)
-    function getMatchInput(mid, teamNum) {
-        const targetP0 = document.getElementById(`m${mid}-t${teamNum}-p0`);
-        const targetP1 = document.getElementById(`m${mid}-t${teamNum}-p1`);
-        if (!targetP0) return "";
-        
-        let val = targetP0.value;
-        if (targetP1 && targetP1.value) {
-            val += ` / ${targetP1.value}`;
-        }
-        return val;
-    }
-
-    function switchStageView(stage) {
-        currentStage = stage;
-        const isGroupMode = document.getElementById('format-selector').value === 'group';
-        
-        document.getElementById('group-tabs').style.display = isGroupMode ? 'flex' : 'none';
-        document.getElementById('knockout-tabs').style.display = isGroupMode ? 'none' : 'flex';
-
-        if(stage === 'group') {
-            document.getElementById('advance-btn-container').style.display = (TOTAL_PLAYERS > 4) ? 'block' : 'none';
-            document.getElementById('back-to-group-container').style.display = 'none';
-            setSubView('rankings'); 
-        } else {
-            document.getElementById('advance-btn-container').style.display = 'none';
-            document.getElementById('back-to-group-container').style.display = isGroupMode ? 'block' : 'none';
-            setSubView('bracket'); 
-        }
-    }
-
-    function drawConnectors() {
-        if (currentSubView !== 'bracket') return;
-
-        const svg = document.getElementById('bracket-lines');
-        const scrollView = document.getElementById('bracket-scroll-view');
-        if(!scrollView || scrollView.offsetParent === null) return; 
-        
-        svg.style.width = scrollView.scrollWidth + "px";
-        svg.style.height = scrollView.scrollHeight + "px";
-        svg.innerHTML = ''; 
-        
-        const rootRect = scrollView.getBoundingClientRect();
-
-        for (let key in matchesData) {
-            const match = matchesData[key];
-            if (match.nextMatchId !== null) {
-                const currEl = document.getElementById(`match-card-${match.id}`);
-                const nextEl = document.getElementById(`match-card-${match.nextMatchId}`);
-                
-                if (currEl && nextEl) {
-                    const cRect = currEl.getBoundingClientRect();
-                    const nRect = nextEl.getBoundingClientRect();
-                    
-                    if (cRect.width === 0 || nRect.width === 0) continue;
-
-                    const startX = Math.round((cRect.left - rootRect.left) + cRect.width);
-                    const startY = Math.round((cRect.top - rootRect.top) + cRect.height / 2);
-                    const endX = Math.round(nRect.left - rootRect.left);
-                    const endY = Math.round((nRect.top - rootRect.top) + nRect.height / 2);
-                    const midX = Math.round(startX + (endX - startX) / 2);
-                    
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`);
-                    path.setAttribute("class", "connector-path");
-                    svg.appendChild(path);
-                }
-            }
-        }
-    }
-    
-    window.addEventListener('resize', () => { setTimeout(drawConnectors, 100); });
-
-    function selectMatch(mid) {
-        const n1 = getMatchInput(mid, 1) || "P1";
-        const n2 = getMatchInput(mid, 2) || "P2";
-        const fmtSelect = document.getElementById(`fmt-r${matchesData[mid].round}`);
-        const legsNeeded = Math.ceil(parseInt(fmtSelect.value) / 2);
-
-        if(confirm(`載入 Match ${mid+1}?\n${n1} VS ${n2}\n搶 ${legsNeeded} 勝\n模式: ${GAME_MODE}`)) {
-            currentMatchId = mid; targetLegs = legsNeeded;
-            document.getElementById('p1-name').innerText = n1;
-            document.getElementById('p2-name').innerText = n2;
-            resetGame(); closeBracket();
-        }
-    }
-
-    function advanceWinner(winnerIdx) {
-        if(currentMatchId === null) return;
-        const wScore = players[winnerIdx].legs;
-        const lScore = players[(winnerIdx===1?2:1)].legs;
-
-        if (typeof currentMatchId === 'string' && currentMatchId.startsWith('G-')) {
-            const match = groupMatches.find(m => m.id === currentMatchId);
-            const wId = (winnerIdx === 1) ? match.p1 : match.p2;
-            const lId = (winnerIdx === 1) ? match.p2 : match.p1;
-            
-            match.winner = wId; match.score = `${wScore}-${lScore}`;
-            
-            const findP = (g, id) => groupsData[g].find(x=>x.id===id);
-            let wData = findP(match.group, wId);
-            let lData = findP(match.group, lId);
-            wData.wins += 1;
-            wData.legsDiff += (wScore - lScore);
-            lData.legsDiff += (lScore - wScore);
-
-            alert(`小組賽更新：${wData.name} 勝出！`);
-            renderGroupView(); 
-            renderGroupSchedule(); 
-        } 
-        else {
-            const match = matchesData[currentMatchId];
-            const wName = document.getElementById(`p${winnerIdx}-name`).innerText;
-            if (match.nextMatchId !== null) {
-                const teamNum = (match.id % 2 === 0) ? 1 : 2;
-                setMatchInput(match.nextMatchId, teamNum, wName);
-                alert(`恭喜 ${wName} 晉級！`);
-                setTimeout(drawConnectors, 200);
-            } else { 
-                alert(`恭喜 ${wName} 獲得總冠軍！`); 
-            }
-            renderKnockoutSchedule(); 
-        }
-        openBracket(); 
-    }
-
-    function getCheckoutText(score) {
-        if (score > 170 || score < 2) return "";
-        if (score <= 40 && score % 2 === 0) return `D${score/2}`;
-        const checkouts = {
-            170: "T20 T20 Bull", 167: "T20 T19 Bull", 164: "T20 T18 Bull",
-            161: "T20 T17 Bull", 160: "T20 T20 D20", 158: "T20 T20 D19",
-            156: "T20 T20 D18", 153: "T20 T19 D18", 150: "T20 T18 D18",
-            140: "T20 T20 D10", 132: "T20 T20 D6", 121: "T20 T11 D14",
-            100: "T20 D20", 90: "T20 D15", 82: "Bull D16", 60: "20 D20",
-            50: "10 D20", 40: "D20", 32: "D16", 24: "D12", 36: "D18"
-        };
-        if(checkouts[score]) return checkouts[score];
-        if(score <= 50 && score % 2 !== 0) return `${1} D${(score-1)/2}`; 
-        return ""; 
-    }
-
-    function handleMiss() {
-        if (isBoardLocked) return;
-        const p = players[currentPlayer];
-        turnDarts++;
-        p.matchTotalDarts++; 
-        let h = { id: 'Miss', score: 0, player: currentPlayer, turnIndex: turnDarts };
-        p.roundHistory.push(h); throwHistory.push(h);
-        updateUI();
-        if (turnDarts >= 3) lockBoard();
-    }
-
-    function handleHit(e) {
-        if (isBoardLocked) return;
-        
-        const scoreHit = parseInt(e.target.getAttribute("data-score"));
-        const hitId = e.target.getAttribute("data-id") || scoreHit;
-        
-        let targetAngle = parseFloat(e.target.getAttribute("data-angle"));
-        let targetRadius = parseFloat(e.target.getAttribute("data-radius"));
-        let hitCount = (turnHitCounts[hitId] || 0) + 1;
-        turnHitCounts[hitId] = hitCount;
-
-        let finalRadius = targetRadius;
-        if (hitId === 'B25') {
-            finalRadius = 19; 
-            if (hitCount === 1) targetAngle = -90;      
-            else if (hitCount === 2) targetAngle = 0;   
-            else if (hitCount === 3) targetAngle = 90;  
-        } else if (hitId === 'B50') {
-            if (hitCount === 2) finalRadius -= 5;
-            if (hitCount === 3) finalRadius += 5;
-        } else {
-            const radialOffset = 8; 
-            if (hitCount === 2) finalRadius = targetRadius - radialOffset;
-            if (hitCount === 3) finalRadius = targetRadius + radialOffset;
-        }
-
-        const radian = targetAngle * Math.PI / 180;
-        const finalX = finalRadius * Math.cos(radian);
-        const finalY = finalRadius * Math.sin(radian);
-        addDartMarker(finalX, finalY, turnDarts + 1, 4);
-
-        const p = players[currentPlayer];
-        const remaining = p.score - scoreHit;
-        const isDouble = (typeof hitId === 'string' && hitId.startsWith('D')) || hitId === 'B50';
-
-        // 爆鏢判斷
-        if (remaining < 0 || remaining === 1 || (remaining === 0 && !isDouble)) {
-            p.roundHistory.forEach(dart => { if(dart.score > 0) p.score += dart.score; }); 
-            p.roundHistory.forEach(dart => { if(dart.score > 0) p.matchTotalScore -= dart.score; });
-            
-            turnDarts++;
-            p.matchTotalDarts++;
-            let h = { id: hitId, score: 0, player: currentPlayer, turnIndex: turnDarts, isBust: true };
-            p.roundHistory.push(h); throwHistory.push(h);
-            updateUI();
-            setTimeout(() => { alert("爆鏢 (BUST)！\n需雙倍區結標"); lockBoard(); }, 50);
-            return; 
-        }
-
-        p.score -= scoreHit; turnDarts++;
-        p.matchTotalScore += scoreHit; 
-        p.matchTotalDarts++;
-        let h = { id: hitId, score: scoreHit, player: currentPlayer, turnIndex: turnDarts };
-        p.roundHistory.push(h); throwHistory.push(h);
-        updateUI();
-
-        if (p.score === 0) { 
-            setTimeout(() => { 
-                if(confirm(`Game Shot! \n確認 ${players[currentPlayer].name} 結標獲勝？`)) {
-                    handleLegWin(currentPlayer); 
-                } else {
-                    undoLastDart(); // 按取消，自動復原上一鏢
-                }
-            }, 100); 
-            return; 
-        }
-
-        if (turnDarts >= 3) lockBoard();
-    }
-    
-    function addDartMarker(x, y, dartNum, r) {
-        const marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        marker.setAttribute("cx", x); marker.setAttribute("cy", y); marker.setAttribute("r", r);
-        marker.setAttribute("class", `dart-marker dart-marker-${dartNum}`);
-        svg.appendChild(marker); markers.push(marker);
-    }
-    
-    function clearMarkers() { markers.forEach(m => m.remove()); markers = []; turnHitCounts = {}; }
-
-    function handleLegWin(winner) {
-        players[winner].legs++;
-        if(players[winner].legs >= targetLegs) { advanceWinner(winner); } 
-        else {
-            alert(`${players[winner].legs} - ${players[(winner===1?2:1)].legs}\n下一局開始`);
-            legStarter = (winner===1)?2:1; currentPlayer = legStarter;
-            resetGameValues(); // Reset values for new leg
-            clearMarkers(); updateUI(); updateActiveCard();
-        }
-    }
-
-    function resetGame() {
-        players[1].legs = 0; players[2].legs = 0;
-        players[1].matchTotalScore = 0; players[1].matchTotalDarts = 0;
-        players[2].matchTotalScore = 0; players[2].matchTotalDarts = 0;
-        resetGameValues();
-        currentPlayer = 1; legStarter = 1;
-        clearMarkers(); updateUI(); updateActiveCard();
-    }
-
-    function resetGameValues() {
-        players[1].score = GAME_MODE; players[2].score = GAME_MODE;
-        players[1].roundHistory = []; players[2].roundHistory = [];
-        throwHistory = []; turnDarts = 0; isBoardLocked = false;
-    }
-
-    function switchPlayer() { 
-        isBoardLocked = false; turnDarts = 0; players[currentPlayer].roundHistory = []; 
-        currentPlayer = (currentPlayer===1)?2:1; clearMarkers(); updateUI(); updateActiveCard(); 
-    }
-    
-    function undoLastDart() { 
-        if(throwHistory.length===0) return; 
-        const last=throwHistory.pop(); 
-        if(last.player!==currentPlayer){alert("無法復原");return;} 
-        
-        const p = players[currentPlayer];
-
-        if (!last.isBust) {
-            p.score += last.score;
-            p.matchTotalScore -= last.score; 
-        } else {
-             p.roundHistory.forEach(d => { if(d.score > 0) p.matchTotalScore += d.score; });
-        }
-
-        p.roundHistory.pop(); 
-        p.matchTotalDarts--; 
-        turnDarts--; isBoardLocked=false; 
-        if (last.id !== 'Miss') {
-            if(turnHitCounts[last.id] > 0) turnHitCounts[last.id]--;
-            const lastMarker = markers.pop(); if(lastMarker) lastMarker.remove();
-        }
-        updateUI(); 
-    }
-    
-    function updateUI() { 
-        document.getElementById('p1-score').innerText = players[1].score; 
-        document.getElementById('p2-score').innerText = players[2].score; 
-        document.getElementById('p1-legs').innerText = players[1].legs; 
-        document.getElementById('p2-legs').innerText = players[2].legs; 
-        
-        const updateStats = (pid) => {
-            const p = players[pid];
-            let avg = (p.matchTotalDarts > 0) ? (p.matchTotalScore / p.matchTotalDarts) * 3 : 0;
-            document.getElementById(`p${pid}-avg`).innerText = avg.toFixed(2);
-            document.getElementById(`p${pid}-hint`).innerText = getCheckoutText(p.score);
-        };
-        
-        updateStats(1);
-        updateStats(2);
-
-        updateSlots(1); updateSlots(2);
-        const overlay = document.getElementById('board-overlay');
-        const btnNext = document.getElementById('btn-next');
-        if(isBoardLocked) { overlay.style.display = 'flex'; btnNext.classList.add('ready'); } else { overlay.style.display = 'none'; btnNext.classList.remove('ready'); } 
-    }
-
-    function updateSlots(pid) {
-        const hist = players[pid].roundHistory;
-        const slots = document.getElementById(`p${pid}-slots`).getElementsByClassName('dart-slot');
-        for(let s of slots) { s.innerText = '-'; s.classList.remove('filled', 'miss'); }
-        hist.forEach((h, i) => { 
-            if (slots[i]) { 
-                slots[i].innerText = h.id; slots[i].classList.add('filled'); 
-                if(h.id === 'Miss') slots[i].classList.add('miss'); 
-            } 
-        });
-    }
-    
-    function updateActiveCard() { document.getElementById('p1-card').classList.remove('active', 'active-p1'); document.getElementById('p2-card').classList.remove('active', 'active-p2'); document.getElementById(`p${currentPlayer}-card`).classList.add('active', `active-p${currentPlayer}`); }
-    function lockBoard() { isBoardLocked = true; updateUI(); }
-
-    const svg = document.getElementById('dartboard');
-    const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
-    function createBoard() {
-        const sectorAngle = 360 / 20;
-        SECTORS.forEach((score, i) => {
-            const start = (i * sectorAngle) - 90 - (sectorAngle/2);
-            const end = start + sectorAngle;
-            const isEven = i % 2 === 0;
-            drawSector(start, end, 160, 195, isEven?'area-red':'area-green', `D${score}`, score*2);
-            drawSector(start, end, 110, 160, isEven?'area-black':'area-white', `S${score}`, score);
-            drawSector(start, end, 80, 110, isEven?'area-red':'area-green', `T${score}`, score*3);
-            drawSector(start, end, 25, 80, isEven?'area-black':'area-white', `S${score}`, score);
-            drawLabel(start + sectorAngle/2, 215, score);
-        });
-        drawCircle(25, 'area-green', 'B25', 25); drawCircle(12, 'area-red', 'B50', 50);
-        updateUI(); updateActiveCard();
-    }
-    function drawSector(s, e, ir, or, cls, id, val) {
-        const r1=s*Math.PI/180, r2=e*Math.PI/180;
-        const x1=ir*Math.cos(r1), y1=ir*Math.sin(r1), x2=or*Math.cos(r1), y2=or*Math.sin(r1);
-        const x3=or*Math.cos(r2), y3=or*Math.sin(r2), x4=ir*Math.cos(r2), y4=ir*Math.sin(r2);
-        const d = `M${x1} ${y1}L${x2} ${y2}A${or} ${or} 0 0 1 ${x3} ${y3}L${x4} ${y4}A${ir} ${ir} 0 0 0 ${x1} ${y1}Z`;
-        const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-        p.setAttribute("d",d); p.setAttribute("class",cls); p.setAttribute("data-id", id); p.setAttribute("data-score",val);
-        const midAngle = (s + e) / 2; const midRadius = (ir + or) / 2;
-        p.setAttribute("data-angle", midAngle); p.setAttribute("data-radius", midRadius);
-        p.addEventListener('click', handleHit); svg.appendChild(p);
-    }
-    function drawCircle(r, cls, id, val) {
-        const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-        c.setAttribute("cx",0); c.setAttribute("cy",0); c.setAttribute("r",r); c.setAttribute("class",cls); c.setAttribute("data-id", id); c.setAttribute("data-score",val);
-        c.setAttribute("data-angle", 0); c.setAttribute("data-radius", 0);
-        c.addEventListener('click', (e)=>{e.stopPropagation(); handleHit(e);}); svg.appendChild(c);
-    }
-    function drawLabel(angle, r, text) {
-        const rad = angle * Math.PI / 180;
-        const t = document.createElementNS("http://www.w3.org/2000/svg","text");
-        t.setAttribute("x", r*Math.cos(rad)); t.setAttribute("y", r*Math.sin(rad));
-        t.setAttribute("class", "text-label"); t.textContent = text; svg.appendChild(t);
-    }
+    document.getElementById('fBo').value=String(bo);
+    document.getElementById('fScore').value=String(sc);
+  }else{
+    knockoutRoundRules[roundIdx]={bo:bo,score:sc};
+  }
+  renderKnockoutSchedule();
+}
+
+function getTeamName(mid,team){
+  const mode=document.getElementById('modeSel').value;
+  if(mode==='double'){
+    const a=document.getElementById(`m${mid}t${team}a`)?.value?.trim()||"";
+    const b=document.getElementById(`m${mid}t${team}b`)?.value?.trim()||"";
+    return b ? `${a} / ${b}` : a;
+  }
+  return document.getElementById(`m${mid}t${team}a`)?.value?.trim() || "";
+}
+function setMatchName(mid,team,name){
+  const mode=document.getElementById('modeSel').value;
+  if(mode==='double'){
+    const parts=name.split('/');
+    const a=(parts[0]||'').trim(); const b=(parts[1]||'').trim();
+    const ia=document.getElementById(`m${mid}t${team}a`), ib=document.getElementById(`m${mid}t${team}b`);
+    if(ia) ia.value=a;
+    if(ib) ib.value=b;
+  }else{
+    const ia=document.getElementById(`m${mid}t${team}a`);
+    if(ia) ia.value=name;
+  }
+}
+
+function renderKnockoutSchedule(){
+  const cont=document.getElementById('knockSchedule');
+  let html = `<table class="table"><thead><tr>
+    <th>場次</th><th>時間</th><th>賽事階段</th><th>對戰組合</th><th>規則</th><th>比分</th><th>操作</th>
+  </tr></thead><tbody>`;
+  const matches = Object.values(matchesData).sort((a,b)=>a.id-b.id);
+  matches.forEach(m=>{
+    const n1 = getTeamName(m.id,1) || "待定";
+    const n2 = getTeamName(m.id,2) || "待定";
+    const rule = knockoutRoundRules[m.round] || {bo:3,score:501};
+    html += `<tr>
+      <td>M${m.id+1}</td>
+      <td><input class="time" value="${escapeHtml(m.time||'')}" placeholder="00:00" onchange="updateMatchTime('K','${m.id}',this.value)"></td>
+      <td>Round ${m.round+1}</td>
+      <td>${escapeHtml(n1)} vs ${escapeHtml(n2)}</td>
+      <td><span class="tag">Bo${rule.bo} / ${rule.score}</span></td>
+      <td>-</td>
+      <td><div class="play" onclick="selectMatch(${m.id})">載入</div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  cont.innerHTML=html;
+}
+
+function selectMatch(mid){
+  const n1 = getTeamName(mid,1) || "P1";
+  const n2 = getTeamName(mid,2) || "P2";
+  const rule = knockoutRoundRules[matchesData[mid].round] || {bo:3,score:501};
+  const legsNeeded = Math.ceil(rule.bo/2);
+  if(!confirm(`載入 Match ${mid+1}?\n${n1} VS ${n2}\n規則：Bo${rule.bo}（搶 ${legsNeeded} 勝） / ${rule.score}`)) return;
+
+  currentMatchId = mid;
+  targetLegs = legsNeeded;
+  GAME_MODE = rule.score;
+  document.getElementById('p1Name').innerText = n1;
+  document.getElementById('p2Name').innerText = n2;
+  players[1].name=n1; players[2].name=n2;
+  resetMatch();
+  closeBracket();
+}
+
+function advanceWinner(winnerIdx){
+  if(currentMatchId===null) return;
+
+  const wLegs = players[winnerIdx].legs;
+  const lLegs = players[winnerIdx===1?2:1].legs;
+
+  if(typeof currentMatchId === 'string'){
+    // group match
+    const m=groupMatches.find(x=>x.id===currentMatchId);
+    const wId = (winnerIdx===1)? m.p1 : m.p2;
+    const lId = (winnerIdx===1)? m.p2 : m.p1;
+    m.winner = wId;
+    m.score = `${wLegs}-${lLegs}`;
+
+    const wP = groupsData[m.group].find(x=>x.id===wId);
+    const lP = groupsData[m.group].find(x=>x.id===lId);
+    wP.wins += 1;
+    wP.legsDiff += (wLegs-lLegs);
+    lP.legsDiff += (lLegs-wLegs);
+    alert(`小組賽更新：${wP.name} 勝出！`);
+    renderGroupView();
+    renderGroupSchedule();
+    openBracket();
+    return;
+  }
+
+  // knockout
+  const match=matchesData[currentMatchId];
+  const wName = (winnerIdx===1)?document.getElementById('p1Name').innerText:document.getElementById('p2Name').innerText;
+
+  if(match.nextMatchId!==null){
+    const teamNum = (match.id%2===0)?1:2;
+    setMatchName(match.nextMatchId, teamNum, wName);
+    alert(`恭喜 ${wName} 晉級！`);
+  }else{
+    alert(`恭喜 ${wName} 獲得總冠軍！`);
+  }
+  renderKnockoutSchedule();
+  openBracket();
+  setTimeout(drawConnectors,120);
+}
+
+function drawConnectors(){
+  const svgL=document.getElementById('lines');
+  svgL.innerHTML='';
+  // compute svg size to cover scroll area
+  const scroll=document.getElementById('scroll');
+  const bbox = scroll.getBoundingClientRect();
+  svgL.setAttribute('width', bbox.width);
+  svgL.setAttribute('height', bbox.height);
+
+  const rounds=Math.log2(TOTAL_PLAYERS)||0;
+  if(rounds<2) return;
+  // for each match in round r, connect to next round
+  Object.values(matchesData).forEach(m=>{
+    if(m.nextMatchId===null) return;
+    const from=document.getElementById(`match-${m.id}`);
+    const to=document.getElementById(`match-${m.nextMatchId}`);
+    if(!from || !to) return;
+
+    const fr=from.getBoundingClientRect();
+    const tr=to.getBoundingClientRect();
+    const sr=scroll.getBoundingClientRect();
+
+    const x1 = fr.right - sr.left;
+    const y1 = (fr.top + fr.bottom)/2 - sr.top;
+    const x2 = tr.left - sr.left;
+    const y2 = (tr.top + tr.bottom)/2 - sr.top;
+
+    const midx = (x1+x2)/2;
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute('class','connector');
+    path.setAttribute('d', `M ${x1} ${y1} L ${midx} ${y1} L ${midx} ${y2} L ${x2} ${y2}`);
+    svgL.appendChild(path);
+  });
+}
+
+function updateMatchTime(type,id,v){
+  if(type==='G'){
+    const m=groupMatches.find(x=>x.id===id);
+    if(m) m.time=v;
+  }else{
+    const mid=parseInt(id,10);
+    if(matchesData[mid]) matchesData[mid].time=v;
+  }
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g,(c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
+}
+
+/* ========= Init ========= */
+window.addEventListener('load', ()=>{
+  createBoard();
+  initSizeOptions();
+  initBracket();
+  resetMatch();
+});
 </script>
 </body>
 </html>
