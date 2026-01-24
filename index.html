@@ -1386,7 +1386,7 @@ function renderGroupSchedule(){
     
     // --- 核心修正點：讀取場次物件 m 裡面的 bo 與 score ---
     // 不要用全域的 ruleText，改用 m.bo 和 m.score
-    const matchRuleText = `Bo${m.bo || 5} / ${m.score || 501}`; 
+    const matchRuleText = `Bo${m.bo || 5} / ${m.scoreMode || 501}`;
     
     const scoreDisp = m.winner ? `<span class="tag done">${m.score_display || '-'}</span>` : `<span class="tag">-</span>`;
     const btnCls = m.winner ? 'play disabled':'play';
@@ -2070,4 +2070,5 @@ function updateTabActive(activeId) {
 </script>
 </body>
 </html>
+
 
