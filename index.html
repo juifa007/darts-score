@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>硬靶專業記分板 V74（整理版）</title>
+<title>硬靶軟靶專業記分板 V86（完成版））</title>
 <style>
 :root{
   --bg:#eef2f5; --panel:#fff; --left:#dfe4ea;
@@ -19,6 +19,7 @@ html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Seg
 .player.active{opacity:1;background:#fff;border-width:3px;transform:scale(1.01)}
 .player.active.p1{border-color:var(--p1)} .player.active.p2{border-color:var(--p2)}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.turnTop{font-weight:900;color:#007bff;font-size:1.05rem;white-space:nowrap;}
 .name{font-size:1.3rem;font-weight:900;white-space:pre-wrap;line-height:1.2;word-break:break-word}
 .ind{font-size:1.5rem;visibility:hidden}
 .player.active .ind{visibility:visible}
@@ -26,6 +27,42 @@ html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Seg
 .slot{flex:1;background:#fff;border:1px solid #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#555}
 .slot.filled{color:#000;border-color:#333;background:#e9ecef}
 .slot.miss{color:#dc3545;background:#fff0f0;border-color:#dc3545}
+.slot.editing{
+  animation: blink 0.6s infinite;
+  border-color:#007bff;
+}
+
+@keyframes blink{
+  0%{opacity:1}
+  50%{opacity:.2}
+  100%{opacity:1}
+}
+.slot.editing{  background:#fff9c4;  border-color:#f1c40f;  animation: blink .7s infinite;}
+.slotWrap{  position:relative;  flex:1;  display:flex;  align-items:center;}
+.slotWrap .slot{  width:100%;}
+.editBtn{
+  position:absolute;
+  right:3px;
+  top:50%;
+  transform:translateY(-50%);
+  border:1px solid #bbb;
+  background:#fff;
+  color:#444;
+  font-size:12px;
+  font-weight:900;
+  padding:2px 6px;
+  border-radius:6px;
+  cursor:pointer;
+  opacity:.25;
+}
+
+.player.active .editBtn{
+  opacity:.9;
+}
+
+.editBtn:active{
+  transform:translateY(-50%) scale(.96);
+}
 .row{display:flex;justify-content:space-between;align-items:center;margin:5px 0}
 .stats{width:40%;display:flex;flex-direction:column}
 .lab{font-size:.8rem;color:#888;font-weight:900;text-transform:uppercase}
@@ -151,6 +188,11 @@ svg#dartboard{max-width:90%;max-height:90%;filter:drop-shadow(0 5px 15px rgba(0,
   <div id="bHeader">
     <div class="topbar">
       <div class="hctrl">
+        <span class="lbl">靶機：</span>
+        <select id="targetTypeSel" class="sel">
+          <option value="hard">硬靶 (Steel Tip)</option>
+          <option value="soft">軟靶 (Soft Tip)</option>
+        </select>
         <span class="lbl">模式：</span>
         <select id="modeSel" class="sel">
           <option value="single">個人賽 (Singles)</option>
@@ -166,14 +208,22 @@ svg#dartboard{max-width:90%;max-height:90%;filter:drop-shadow(0 5px 15px rgba(0,
 
         <span class="lbl">總人數：</span>
         <select id="sizeSel" class="sel"></select>
+		<span class="lbl">每組：</span>
+		<select id="perGroupSel" class="sel">
+		  <option value="4" selected>4人</option>
+		  <option value="3">3人</option>
+		</select>
       </div>
       <button class="ctrl" style="padding:6px 16px;background:#eee;color:#333;border:1px solid #ccc" onclick="closeBracket()">關閉</button>
     </div>
 
     <div class="tabs" id="tabsGroup" style="display:none;">
-      <div class="tab active" onclick="setSubView('rank')">📊 積分榜</div>
-      <div class="tab" onclick="setSubView('schedule')">📅 賽程表</div>
+      <div class="tab active" id="tabGroupRank" onclick="setSubView('rank')">📊 積分榜</div>
+      <div class="tab" id="tabGroupSch" onclick="setSubView('schedule')">📅 賽程表</div>
+      <div class="tab" id="tabFinalBracket" style="display:none;" onclick="setSubView('bracket')">🏆 決賽賽程表</div>
+      <div class="tab" id="tabFinalSch" style="display:none;" onclick="setSubView('knockSchedule')">⏱️ 決賽時間表</div>
     </div>
+
     <div class="tabs" id="tabsKnock" style="display:none;">
       <div class="tab active" onclick="setSubView('bracket')">🌳 樹狀圖</div>
       <div class="tab" onclick="setSubView('schedule')">📅 賽程表</div>
@@ -187,26 +237,18 @@ svg#dartboard{max-width:90%;max-height:90%;filter:drop-shadow(0 5px 15px rgba(0,
       <select id="gScore" class="sel">
         <option value="301">301</option><option value="501" selected>501</option><option value="701">701</option>
       </select>
-      <span class="small">(全部組別共用)</span>
     </div>
 
     <div id="finalRules" class="rulebar">
-      <span class="lbl">決賽規則：</span>
+      <span class="lbl">小組賽規則：</span>
       <select id="fBo" class="sel">
         <option value="3" selected>Bo3</option><option value="5">Bo5</option><option value="7">Bo7</option>
       </select>
       <select id="fScore" class="sel">
         <option value="301">301</option><option value="501" selected>501</option><option value="701">701</option>
       </select>
-      <span class="small">(整個決賽淘汰賽共用)</span>
     </div>
 
-    <div id="advWrap">
-      <button class="ctrl" style="background:#28a745;color:#fff;padding:10px 22px;border-radius:22px" onclick="generateKnockoutFromGroups()">🏆 結算成績並產生決賽表</button>
-    </div>
-    <div id="backWrap">
-      <button class="ctrl" style="background:#6c757d;color:#fff;padding:7px 16px;border-radius:18px" onclick="switchStage('group')">↩ 返回小組賽修改成績</button>
-    </div>
   </div>
   <div id="bContent">
     <div id="scroll">
@@ -230,20 +272,62 @@ svg#dartboard{max-width:90%;max-height:90%;filter:drop-shadow(0 5px 15px rgba(0,
     <button id="bracketBtn" onclick="openBracket()">賽程表 / 戰績輸入</button>
 
     <div class="player active p1" id="p1Card">
-      <div class="header"><div class="ind">👉</div><div class="name" id="p1Name">Player 1</div></div>
-      <div class="slots" id="p1Slots"><div class="slot">-</div><div class="slot">-</div><div class="slot">-</div></div>
+		<div class="header">
+		  <div class="ind">👉</div>
+		  <div class="name" id="p1Name">Player 1</div>
+		  <div class="turnTop">Turn: <span id="p1TurnTop">0</span></div>
+		</div>
+	<div class="slots" id="p1Slots">
+	  <div class="slotWrap">
+		<div class="slot">-</div>
+		<button class="editBtn" onclick="editDart(1,0,event)">修正</button>
+	  </div>
+	  <div class="slotWrap">
+		<div class="slot">-</div>
+		<button class="editBtn" onclick="editDart(1,1,event)">修正</button>
+	  </div>
+	  <div class="slotWrap">
+		<div class="slot">-</div>
+		<button class="editBtn" onclick="editDart(1,2,event)">修正</button>
+	  </div>
+	</div>
       <div class="row">
-        <div class="stats"><div class="lab">AVG</div><div class="val" id="p1Avg">0.00</div><div class="hint" id="p1Hint"></div></div>
+		<div class="stats">
+		  <div class="lab">AVG</div>
+		  <div class="val" id="p1Avg">0.00</div>
+		  <div class="hint" id="p1Hint"></div>
+		</div>
         <div class="big" id="p1Score">501</div>
       </div>
       <div class="round">Legs: <span id="p1Legs">0</span></div>
     </div>
 
     <div class="player" id="p2Card">
-      <div class="header"><div class="ind">👉</div><div class="name" id="p2Name">Player 2</div></div>
-      <div class="slots" id="p2Slots"><div class="slot">-</div><div class="slot">-</div><div class="slot">-</div></div>
+		<div class="header">
+		  <div class="ind">👉</div>
+		  <div class="name" id="p2Name">Player 2</div>
+		  <div class="turnTop">Turn: <span id="p2TurnTop">0</span></div>
+		</div>
+	<div class="slots" id="p2Slots">
+	  <div class="slotWrap">
+		<div class="slot">-</div>
+		<button class="editBtn" onclick="editDart(2,0,event)">修正</button>
+	  </div>
+	  <div class="slotWrap">
+		<div class="slot">-</div>
+		<button class="editBtn" onclick="editDart(2,1,event)">修正</button>
+	  </div>
+	  <div class="slotWrap">
+		<div class="slot">-</div>
+		<button class="editBtn" onclick="editDart(2,2,event)">修正</button>
+	  </div>
+	</div>
       <div class="row">
-        <div class="stats"><div class="lab">AVG</div><div class="val" id="p2Avg">0.00</div><div class="hint" id="p2Hint"></div></div>
+		<div class="stats">
+		  <div class="lab">AVG</div>
+		  <div class="val" id="p2Avg">0.00</div>
+		  <div class="hint" id="p2Hint"></div>
+		</div>
         <div class="big" id="p2Score">501</div>
       </div>
       <div class="round">Legs: <span id="p2Legs">0</span></div>
@@ -303,6 +387,52 @@ function addMarker(x,y,n,r){
   c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r",r);
   c.setAttribute("class",`dart-marker dart-marker-${n}`);
   svg.appendChild(c); markers.push(c);
+}
+function getMissXY(n){
+  const R = 225; // 靶外圈距離（viewBox 半徑 250，225 很安全）
+  const angles = [240, 270, 300]; // 左下/正下/右下
+  const ang = angles[(n-1) % 3] * DEG;
+
+  return {
+    x: R * Math.cos(ang),
+    y: R * Math.sin(ang)
+  };
+}
+// ✅ 就放在這裡（getMissXY 後面）
+function calcFixedDartPos(dartIndex, hitId, baseAngle, baseRadius){
+// dartIndex: 1,2,3
+
+
+if(hitId === "MISS"){
+return getMissXY(dartIndex);
+}
+
+
+let r = baseRadius;
+let ang = baseAngle;
+
+
+const off = 8;
+if(dartIndex === 2) r = baseRadius + off; // 下移
+if(dartIndex === 3) r = baseRadius - off; // 上移
+
+
+if(hitId === "B25"){
+r = 19;
+if(dartIndex === 1) ang = -90;
+if(dartIndex === 2) ang = 0;
+if(dartIndex === 3) ang = 90;
+}
+
+
+if(hitId === "B50"){
+if(dartIndex === 2) r = baseRadius - 5;
+if(dartIndex === 3) r = baseRadius - 10;
+}
+
+
+const a = ang * DEG;
+return { x: r * Math.cos(a), y: r * Math.sin(a) };
 }
 
 function createBoard(){
@@ -370,6 +500,8 @@ let turnDarts = 0;
 let isBoardLocked = false;
 let turnHitCounts = {};
 let throwHistory = [];
+let editTargetIdx = null;   // 0~2，代表要修正第幾鏢
+let editTargetPid = null;   // 1 or 2，代表要修正誰
 
 let players = {
   1:{name:"Player 1", score:GAME_MODE, legs:0, turn:[], matchTotalScore:0, matchTotalDarts:0},
@@ -409,6 +541,28 @@ function lockBoard(){
   document.getElementById('overlay').style.display='flex';
   setNextReady(true);
 }
+function showEditOverlay(idx){
+  const ov = document.getElementById('overlay');
+  if(!ov) return;
+
+  ov.style.display = 'flex';
+  ov.innerHTML = `
+    <div class="t">修正模式</div>
+    <div class="s">請點擊正確靶面分數（第 ${idx+1} 鏢）</div>
+  `;
+}
+function hideEditOverlay(){
+  const ov = document.getElementById('overlay');
+  if(!ov) return;
+
+  // ⚠️ 如果目前還是鎖靶狀態，就不要關掉提示（讓它維持「請按NEXT」）
+  if(isBoardLocked){
+    ov.innerHTML = `<div class="t">請核對分數</div><div style="font-size:1.2rem;color:#555;font-weight:900;margin-top:10px">並按下換人鍵</div>`;
+    ov.style.display = 'flex';
+  }else{
+    ov.style.display = 'none';
+  }
+}
 function updateActiveCard(){
   const p1=document.getElementById('p1Card'), p2=document.getElementById('p2Card');
   p1.classList.remove('active','p1'); p2.classList.remove('active','p2');
@@ -432,6 +586,12 @@ function getAvg(pid){
   return (p.matchTotalScore / p.matchTotalDarts) * 3;
 }
 
+// ✅ 加在這裡（getAvg 的下面，updateUI 的上面）
+function getTurnTotal(pid){
+  const p = players[pid];
+  return (p.turn || []).reduce((sum,d)=>sum + (d.score||0),0);
+}
+
 function updateUI(){
   document.getElementById('p1Score').innerText = players[1].score;
   document.getElementById('p2Score').innerText = players[2].score;
@@ -439,6 +599,10 @@ function updateUI(){
   document.getElementById('p2Legs').innerText = players[2].legs;
   document.getElementById('p1Avg').innerText = getAvg(1).toFixed(2);
   document.getElementById('p2Avg').innerText = getAvg(2).toFixed(2);
+	const p1TT = document.getElementById('p1TurnTop');
+	if(p1TT) p1TT.innerText = getTurnTotal(1);
+	const p2TT = document.getElementById('p2TurnTop');
+	if(p2TT) p2TT.innerText = getTurnTotal(2);
   document.getElementById('p1Hint').innerText = getCheckoutText(players[1].score);
   document.getElementById('p2Hint').innerText = getCheckoutText(players[2].score);
 
@@ -498,35 +662,32 @@ function getCheckoutText(score){
 
 /* ========= Core actions ========= */
 window.handleHit = function(e){
-  if(isBoardLocked) return;
 
-  const scoreHit = parseInt(e.target.dataset.score||"0",10);
+  // ✅ 先抓靶面資料（一定要在最前面）
+  const scoreHit = parseInt(e.target.dataset.score || "0", 10);
   const hitId = e.target.dataset.id || String(scoreHit);
-  let targetAngle = parseFloat(e.target.dataset.angle||"0");
-  let targetRadius = parseFloat(e.target.dataset.radius||"0");
+  let targetAngle = parseFloat(e.target.dataset.angle || "0");
+  let targetRadius = parseFloat(e.target.dataset.radius || "0");
 
-  // spread markers within same segment
-  const key = hitId;
-  const hitCount = (turnHitCounts[key]||0)+1;
-  turnHitCounts[key]=hitCount;
+  // ✅ 修正模式：就算鎖靶也允許直接改
+  if(editTargetPid === currentPlayer && editTargetIdx !== null){
+    applyEditDart(currentPlayer, editTargetIdx, hitId, scoreHit, targetAngle, targetRadius);
 
-  let r = targetRadius;
-  if(hitId==='B25'){
-    r=19;
-    if(hitCount===1) targetAngle=-90;
-    else if(hitCount===2) targetAngle=0;
-    else if(hitCount===3) targetAngle=90;
-  } else if(hitId==='B50'){
-    if(hitCount===2) r-=5;
-    if(hitCount===3) r+=5;
-  } else {
-    const off=8;
-    if(hitCount===2) r = targetRadius - off;
-    if(hitCount===3) r = targetRadius + off;
+    // 修完立刻結束修正（一次只修一鏢）
+    editTargetPid = null;
+    editTargetIdx = null;
+    return;
   }
 
-  const a=targetAngle*DEG;
-  addMarker(r*Math.cos(a), r*Math.sin(a), turnDarts+1, 4);
+  // ✅ 一般模式才擋鎖靶
+  if(isBoardLocked) return;
+
+  // ======= 以下保留你原本的正常計分流程，不用改 =======
+  // spread markers within same segment
+  // ✅ 固定位置：第1鏢中心、第2鏢下移、第3鏢上移（不管同分不同分）
+  const dartIndex = turnDarts + 1; // 1~3
+  const pos = calcFixedDartPos(dartIndex, hitId, targetAngle, targetRadius);
+  addMarker(pos.x, pos.y, dartIndex, 4);
 
   const p = players[currentPlayer];
   const remaining = p.score - scoreHit;
@@ -534,7 +695,6 @@ window.handleHit = function(e){
 
   // bust rule (double-out)
   if(remaining<0 || remaining===1 || (remaining===0 && !isDouble)){
-    // revert this turn's scored darts (only positive)
     p.turn.forEach(d=>{
       if(d.score>0){ p.score += d.score; p.matchTotalScore -= d.score; }
     });
@@ -569,13 +729,30 @@ window.handleHit = function(e){
 };
 
 function handleMiss(){
-  if(isBoardLocked) return;
-  addMarker(0,0,turnDarts+1,3);
+  // ✅ 修正模式：按 MISS 就直接替換那一鏢為 MISS
+  if(editTargetPid === currentPlayer && editTargetIdx !== null){
+    // 用靶外座標顯示 miss（不重疊）
+    const pos = getMissXY(editTargetIdx+1);
+    applyEditDart(currentPlayer, editTargetIdx, "MISS", 0, null, null, pos.x, pos.y);
 
-  const p=players[currentPlayer];
-  turnDarts++; p.matchTotalDarts++;
-  p.turn.push({id:'MISS',score:0,isMiss:true});
-  throwHistory.push({player:currentPlayer, dart:{id:'MISS',score:0,isMiss:true}});
+    editTargetPid = null;
+    editTargetIdx = null;
+    return;
+  }
+
+  if(isBoardLocked) return;
+
+  // ✅ 正常投擲 MISS：畫在靶外，不要畫中心
+  const pos = getMissXY(turnDarts+1);
+  addMarker(pos.x, pos.y, turnDarts+1, 4);
+
+  const p = players[currentPlayer];
+  turnDarts++;
+  p.matchTotalDarts++;
+
+  p.turn.push({id:'MISS', score:0, isMiss:true});
+  throwHistory.push({player:currentPlayer, dart:{id:'MISS', score:0, isMiss:true}});
+
   updateUI();
   if(turnDarts>=3) lockBoard();
 }
@@ -611,7 +788,113 @@ function undoLast(){
   }
   updateUI();
 }
+function applyEditDart(pid, idx, newId, newScore, targetAngle, targetRadius){
 
+  const p = players[pid];
+  if(!p || !p.turn || p.turn.length <= idx) return;
+
+  const old = p.turn[idx];
+
+  // ✅ 先把舊分數加回去
+  if(old.score > 0){
+    p.score += old.score;
+    p.matchTotalScore -= old.score;
+  }
+
+  // ✅ 再扣掉新分數（爆鏢規則）
+  if(newScore > 0){
+    const remaining = p.score - newScore;
+    const isDouble = (String(newId).startsWith('D') || newId === "B50");
+
+    if(remaining < 0 || remaining === 1 || (remaining === 0 && !isDouble)){
+      alert("這個修正會造成爆鏢（BUST），請改其他靶面");
+      showEditOverlay(idx);
+      return;
+    }
+
+    p.score -= newScore;
+    p.matchTotalScore += newScore;
+  }
+
+  // ✅ 更新 turn 資料（保留 MISS/BUST）
+  const isMiss = (newId === "MISS");
+  const isBust = (old && old.isBust) ? true : false; // 修正時保留 bust 屬性（可依需求拿掉）
+  p.turn[idx] = { id:newId, score:newScore, isMiss:isMiss, isBust:isBust };
+
+  // ✅ 移除舊 marker
+  if(markers[idx]){
+    markers[idx].remove();
+    markers[idx] = null;
+  }
+
+  // ✅ 固定三位置：第1鏢中心、第2鏢下移、第3鏢上移（不管同分不同分）
+  const dartIndex = idx + 1; // 1~3
+
+  let pos;
+
+  if(isMiss){
+    // MISS 一律畫在靶外，三鏢分散
+    pos = getMissXY(dartIndex);
+  }else{
+    // 防呆
+    if(typeof targetAngle !== "number") targetAngle = 0;
+    if(typeof targetRadius !== "number") targetRadius = 0;
+
+    // ✅ 核心：用 dartIndex 固定位置，不用 hitCount
+    pos = calcFixedDartPos(dartIndex, newId, targetAngle, targetRadius);
+  }
+
+  // ✅ 重新畫 marker（不要 push，直接塞回 markers[idx]）
+  const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx", pos.x);
+  c.setAttribute("cy", pos.y);
+  c.setAttribute("r", 4);
+  c.setAttribute("class", `dart-marker dart-marker-${dartIndex}`);
+  svg.appendChild(c);
+
+  markers[idx] = c;
+
+  // ✅ slot 停止閃爍
+  const slots = document.getElementById(pid===1?'p1Slots':'p2Slots').querySelectorAll('.slot');
+  if(slots[idx]){
+    slots[idx].classList.remove('editing');
+  }
+
+  // ✅ 關閉提示
+  hideEditOverlay();
+
+  updateUI();
+}
+
+function editDart(pid, idx, ev){
+  ev.stopPropagation();
+
+  // 只能修正目前回合的人（避免改到另一位）
+  if(pid !== currentPlayer){
+    alert("只能修正目前這位選手的回合");
+    return;
+  }
+
+  const p = players[pid];
+  if(!p.turn || p.turn.length <= idx){
+    alert("目前這一鏢還沒投出，無法修正");
+    return;
+  }
+
+  // ✅ 進入修正模式
+  editTargetPid = pid;
+  editTargetIdx = idx;
+
+  // ✅ ①提示：請點靶面修正
+  showEditOverlay(idx);
+
+  // ✅ ②那格變空白/閃爍（先做空白）
+  const slots = document.getElementById(pid===1?'p1Slots':'p2Slots').querySelectorAll('.slot');
+  if(slots[idx]){
+    slots[idx].textContent = '';
+    slots[idx].classList.add('editing');
+  }
+}
 function nextPlayer(){
   if(!isBoardLocked) return;
   // clear current player's turn
@@ -644,19 +927,54 @@ function handleLegWin(winner){
 
 /* ========= Soft mode ========= */
 function toggleSoft(on){
-  document.getElementById('softPanel').style.display = on ? 'flex' : 'none';
+  const softPanel = document.getElementById('softPanel');
+  softPanel.style.display = on ? 'flex' : 'none';
+  
   if(on){
-    document.getElementById('sP1Name').innerText = document.getElementById('p1Name').innerText;
-    document.getElementById('sP2Name').innerText = document.getElementById('p2Name').innerText;
+    // 同步選手名稱與局數
+    document.getElementById('sP1Name').innerText = players[1].name;
+    document.getElementById('sP2Name').innerText = players[2].name;
     document.getElementById('sP1Legs').innerText = players[1].legs;
     document.getElementById('sP2Legs').innerText = players[2].legs;
-    document.getElementById('softRule').innerText = `Bo${(targetLegs*2-1)} / ${GAME_MODE}`;
+    // 這裡微調一下規則顯示 logic
+    const boRule = (targetLegs * 2 - 1);
+    document.getElementById('softRule').innerText = `軟靶模式：Bo${boRule} / ${GAME_MODE}`;
+  }
+}
+function applyTargetType() {
+  const typeSel = document.getElementById('targetTypeSel');
+  if(!typeSel) return;
+  
+  const type = typeSel.value;
+
+  if (type === 'soft') {
+    // 直接開啟您原本設定的全畫面軟靶面板
+    toggleSoft(true); 
+  } else {
+    // 回到硬靶模式
+    toggleSoft(false);
   }
 }
 function manualLeg(pid){
+  // 1. 增加局數
   players[pid].legs++;
+  
+  // 2. 更新軟靶與主介面顯示
   document.getElementById(pid===1?'sP1Legs':'sP2Legs').innerText = players[pid].legs;
   document.getElementById(pid===1?'p1Legs':'p2Legs').innerText = players[pid].legs;
+  
+  // 3. 判斷是否達到勝賽門檻 (Bo3 搶 2, Bo5 搶 3...)
+  // targetLegs 在程式中已經根據 Bo 賽制計算好了 (e.g., Bo3 時 targetLegs = 2)
+  if(players[pid].legs >= targetLegs){
+    const winnerName = players[pid].name;
+    setTimeout(() => {
+      alert(`比賽結束！恭喜 ${winnerName} 獲得勝利！`);
+      // 呼叫原本程式中處理晉級的邏輯
+      advanceWinner(pid); 
+      // 結束後自動關閉軟靶面板
+      toggleSoft(false);
+    }, 100);
+  }
 }
 
 /* ========= Bracket logic ========= */
@@ -677,60 +995,196 @@ function openBracket(){
   syncBars();
   if(subView==='bracket') setTimeout(drawConnectors,80);
 }
-function closeBracket(){ document.getElementById('bracketModal').style.display='none'; }
+function closeBracket(){ 
+  document.getElementById('bracketModal').style.display='none'; 
+  // 關閉賽程表後，根據選單決定要留在硬靶還是跳到全畫面軟靶
+  applyTargetType(); 
+}
 
 function initSizeOptions(){
-  const sizeSel=document.getElementById('sizeSel');
-  const fmt=document.getElementById('fmtSel').value;
-  const cur=parseInt(sizeSel.value||"8",10);
-  const opts = [4,8,16,32,64].concat(fmt==='knockout'?[128]:[]);
-  sizeSel.innerHTML='';
-  opts.forEach(v=>{
-    const o=document.createElement('option');
-    o.value=String(v);
-    if(fmt==='group'){
-      const gCount=Math.max(1, Math.ceil(v/4));
-      o.textContent = `${v}人 (分${gCount}組)`;
-    }else{
+  const sizeSel = document.getElementById('sizeSel');
+  const fmt = document.getElementById('fmtSel').value;
+  const cur = parseInt(sizeSel.value || "8", 10);
+
+  sizeSel.innerHTML = '';
+
+  if(fmt === 'group'){
+    // ✅ 小組循環賽：固定方案清單（總人數 / 組數 / 每組人數）
+    const plans = [
+      { total: 3,  groups: 1,  per: 3 },
+      { total: 4,  groups: 1,  per: 4 },
+      { total: 6,  groups: 2,  per: 3 },
+      { total: 8,  groups: 2,  per: 4 },
+      { total: 12, groups: 4,  per: 3 },
+      { total: 16, groups: 4,  per: 4 },
+      { total: 24, groups: 8,  per: 3 },
+      { total: 32, groups: 8,  per: 4 },
+      { total: 48, groups: 16, per: 3 },
+      { total: 64, groups: 16, per: 4 },
+    ];
+
+    plans.forEach(p=>{
+      const o = document.createElement('option');
+      o.value = String(p.total);
+      o.textContent = `${p.total}人（分${p.groups}組，每組${p.per}人）`;
+      o.dataset.pergroup = String(p.per);   // ✅把每組人數也藏在 option 裡
+      sizeSel.appendChild(o);
+    });
+
+  }else{
+    // ✅ 單淘汰：固定 2^n
+    const opts = [4,8,16,32,64,128];
+    opts.forEach(v=>{
+      const o=document.createElement('option');
+      o.value=String(v);
       o.textContent = `${v}人`;
-    }
-    sizeSel.appendChild(o);
-  });
-  sizeSel.value = opts.includes(cur)? String(cur): "8";
-  TOTAL_PLAYERS = parseInt(sizeSel.value,10);
+      sizeSel.appendChild(o);
+    });
+  }
+
+  // ✅ 修正選值
+  const values = [...sizeSel.options].map(o=>parseInt(o.value,10));
+  sizeSel.value = values.includes(cur) ? String(cur) : String(values[0]);
+
+  TOTAL_PLAYERS = parseInt(sizeSel.value, 10);
+
+  // ✅ 如果是 group，就同步 perGroupSel（讓系統知道每組幾人）
+  if(fmt === 'group'){
+    const selOpt = sizeSel.options[sizeSel.selectedIndex];
+    const per = parseInt(selOpt?.dataset?.pergroup || "4", 10);
+    const perSel = document.getElementById('perGroupSel');
+    if(perSel) perSel.value = String(per);
+  }
 }
 
 function syncBars(){
-  const fmt=document.getElementById('fmtSel').value;
-  const tabsG=document.getElementById('tabsGroup');
-  const tabsK=document.getElementById('tabsKnock');
-  tabsG.style.display = (fmt==='group') ? 'flex' : 'none';
-  tabsK.style.display = (fmt==='knockout') ? 'flex' : 'none';
+  const fmtSel = document.getElementById('fmtSel');
+  const fmt = fmtSel ? fmtSel.value : 'group';
 
-  const gbar=document.getElementById('groupRules');
-  const fbar=document.getElementById('finalRules');
-  if(fmt==='group'){
-    if(currentStage==='group'){ gbar.style.display='flex'; fbar.style.display='none'; }
-    else{ gbar.style.display='none'; fbar.style.display='flex'; }
-  }else{
-    gbar.style.display='none'; fbar.style.display='none';
+  const sizeSel = document.getElementById('sizeSel');
+
+  const tabsG = document.getElementById('tabsGroup');
+  const tabsK = document.getElementById('tabsKnock');
+
+  // 分組賽 Tab
+  const tabRank   = document.getElementById('tabGroupRank');
+  const tabSch    = document.getElementById('tabGroupSch');
+  const tabFinalB = document.getElementById('tabFinalBracket');
+  const tabFinalS = document.getElementById('tabFinalSch');
+
+  // 規則列
+  const gbar = document.getElementById('groupRules');
+  const fbar = document.getElementById('finalRules');
+
+  // ✅ 1) 切換上方 Tabs 顯示
+  if(tabsG) tabsG.style.display = (fmt === 'group') ? 'flex' : 'none';
+  if(tabsK) tabsK.style.display = (fmt === 'knockout') ? 'flex' : 'none';
+
+  // ✅ 2) 強制隱藏 perGroupSel（你現在要的方案選單都放 sizeSel 裡）
+  const perGroupSel = document.getElementById('perGroupSel');
+  const perGroupLbl = perGroupSel?.previousElementSibling; // <span class="lbl">每組：</span>
+  if(perGroupSel) perGroupSel.style.display = 'none';
+  if(perGroupLbl) perGroupLbl.style.display = 'none';
+
+  // ✅ 3) 把「總人數」那個 label 改字：group -> 每組；knockout -> 總人數
+  // 找 sizeSel 前一個 span.lbl
+  const sizeLbl = sizeSel?.previousElementSibling;
+  if(sizeLbl && sizeLbl.classList.contains('lbl')){
+    sizeLbl.innerText = (fmt === 'group') ? "每組：" : "總人數：";
   }
-  document.getElementById('gBo').value=String(groupRules.bo);
-  document.getElementById('gScore').value=String(groupRules.score);
-  document.getElementById('fBo').value=String(finalRules.bo);
-  document.getElementById('fScore').value=String(finalRules.score);
 
-  document.getElementById('advWrap').style.display = (fmt==='group' && TOTAL_PLAYERS>4) ? 'block':'none';
-  document.getElementById('backWrap').style.display = (fmt==='group' && currentStage==='final') ? 'block':'none';
+  // ✅ 4) 先重建 sizeSel 選單內容（很重要：先做再讀 size）
+  initSizeOptions();
+
+  // ✅ 5) 取得最新 size
+  const size = parseInt(sizeSel?.value || "0", 10);
+
+  // ✅ 6) group 模式下：依照 size 決定是否顯示「決賽」分頁
+  if(fmt === 'group'){
+    if(size > 4){
+      if(tabRank) tabRank.innerText = "📊 預賽分組積分榜";
+      if(tabSch)  tabSch.innerText  = "📅 預賽時間表";
+      if(tabFinalB) tabFinalB.style.display = "block";
+      if(tabFinalS) tabFinalS.style.display = "block";
+    }else{
+      if(tabRank) tabRank.innerText = "📊 積分榜";
+      if(tabSch)  tabSch.innerText  = "📅 賽程表";
+      if(tabFinalB) tabFinalB.style.display = "none";
+      if(tabFinalS) tabFinalS.style.display = "none";
+    }
+
+    // group / final 階段規則列顯示
+    if(currentStage === 'group'){
+      if(gbar) gbar.style.display = 'flex';
+      if(fbar) fbar.style.display = 'none';
+    }else{
+      if(gbar) gbar.style.display = 'none';
+      if(fbar) fbar.style.display = 'flex';
+    }
+  }else{
+    if(gbar) gbar.style.display = 'none';
+    if(fbar) fbar.style.display = 'none';
+  }
+
+  // ✅ 7) 同步規則數值
+  const gBo = document.getElementById('gBo');
+  const gScore = document.getElementById('gScore');
+  const fBo = document.getElementById('fBo');
+  const fScore = document.getElementById('fScore');
+
+  if(gBo) gBo.value = String(groupRules.bo);
+  if(gScore) gScore.value = String(groupRules.score);
+  if(fBo) fBo.value = String(finalRules.bo);
+  if(fScore) fScore.value = String(finalRules.score);
+
+  // backWrap（你原本有留著）
+  const backWrap = document.getElementById('backWrap');
+  if(backWrap) backWrap.style.display = (fmt === 'group' && currentStage === 'final') ? 'block' : 'none';
 }
 
-document.getElementById('modeSel').addEventListener('change', ()=>{ if(confirm("切換模式將重置賽程，確定嗎？")) initBracket(); });
-document.getElementById('fmtSel').addEventListener('change', ()=>{ initSizeOptions(); initBracket(); });
-document.getElementById('sizeSel').addEventListener('change', ()=>{ TOTAL_PLAYERS=parseInt(document.getElementById('sizeSel').value,10); initBracket(); });
-document.getElementById('gBo').addEventListener('change', applyGroupRules);
-document.getElementById('gScore').addEventListener('change', applyGroupRules);
-document.getElementById('fBo').addEventListener('change', applyFinalRules);
-document.getElementById('fScore').addEventListener('change', applyFinalRules);
+	// 事件監聽部分
+	document.getElementById('modeSel').addEventListener('change', ()=>{
+	  if(confirm("切換模式將重置賽程，確定嗎？")) initBracket();
+	});
+
+	document.getElementById('fmtSel').addEventListener('change', ()=>{
+	  syncBars();     // ✅ 一定要先切換顯示/選單
+	  initBracket();  // ✅ 再重建賽程
+	});
+
+	document.getElementById('sizeSel').addEventListener('change', ()=>{
+	document.getElementById('sizeSel').addEventListener('change', ()=>{
+	  const sizeSel = document.getElementById('sizeSel');
+	  TOTAL_PLAYERS = parseInt(sizeSel.value,10);
+
+	  const fmt = document.getElementById('fmtSel').value;
+	  if(fmt === 'group'){
+		const per = parseInt(sizeSel.selectedOptions[0]?.dataset?.pergroup || "4", 10);
+		const perSel = document.getElementById('perGroupSel');
+		if(perSel) perSel.value = String(per);
+	  }
+
+	  initBracket();
+	});
+	});
+
+	document.getElementById('gBo').addEventListener('change', applyGroupRules);
+	document.getElementById('gScore').addEventListener('change', applyGroupRules);
+	document.getElementById('fBo').addEventListener('change', applyFinalRules);
+	document.getElementById('fScore').addEventListener('change', applyFinalRules);
+	
+	// ✅ fmt=group 才顯示「每組」選單（避免一開始就跑出來）
+	const fmtNow = document.getElementById('fmtSel').value;
+	const perGroupSel = document.getElementById('perGroupSel');
+	const perGroupLbl = perGroupSel?.previousElementSibling; // <span class="lbl">每組：</span>
+
+	if(fmtNow === 'group'){
+	  if(perGroupSel) perGroupSel.style.display = '';
+	  if(perGroupLbl) perGroupLbl.style.display = '';
+	}else{
+	  if(perGroupSel) perGroupSel.style.display = 'none';
+	  if(perGroupLbl) perGroupLbl.style.display = 'none';
+	}
 
 function switchStage(stage){
   currentStage = stage;
@@ -742,27 +1196,61 @@ function switchStage(stage){
 
 function setSubView(view){
   subView = view;
-  // hide all
+  
+  // 1. 隱藏所有視圖區塊與線條
   document.getElementById('groupView').style.display='none';
   document.getElementById('groupSchedule').style.display='none';
   document.getElementById('bracketView').style.display='none';
   document.getElementById('knockSchedule').style.display='none';
   document.getElementById('lines').style.display='none';
 
-  // tab active
-  const fmt=document.getElementById('fmtSel').value;
-  const tabs = (fmt==='group')? document.getElementById('tabsGroup') : document.getElementById('tabsKnock');
-  [...tabs.querySelectorAll('.tab')].forEach(t=>t.classList.remove('active'));
+  // 2. 處理規則列的顯示與隱藏 (關鍵修正)
+  const gRules = document.getElementById('groupRules');
+  const fRules = document.getElementById('finalRules');
+  
+  // 判斷：如果是決賽相關分頁 (bracket 或 knockSch)，就隱藏所有規則列
+  if (view === 'bracket' || view === 'knockSch') {
+      if (gRules) gRules.style.display = 'none';
+      if (fRules) fRules.style.display = 'none';
+  } else {
+      // 如果回到了預賽分頁，就顯示預賽規則
+      if (gRules) gRules.style.display = 'flex';
+      if (fRules) fRules.style.display = 'none'; // 決賽全域規則在您這裡不需要，維持隱藏
+  }
 
+  // 3. 處理標籤高亮 (Tab active)
+  const fmt = document.getElementById('fmtSel').value;
+  const tabs = (fmt==='group') ? document.getElementById('tabsGroup') : document.getElementById('tabsKnock');
+  [...tabs.querySelectorAll('.tab')].forEach(t => t.classList.remove('active'));
+
+  // 4. 根據 view 顯示對應內容
   if(fmt==='group'){
-    if(view==='rank'){ tabs.children[0].classList.add('active'); document.getElementById('groupView').style.display='grid'; renderGroupView(); }
-    else { tabs.children[1].classList.add('active'); document.getElementById('groupSchedule').style.display='flex'; renderGroupSchedule(); }
-  }else{
-    if(view==='bracket'){ tabs.children[0].classList.add('active'); document.getElementById('bracketView').style.display='flex'; document.getElementById('lines').style.display='block'; renderKnockoutBracket(); setTimeout(drawConnectors,60); }
-    else { tabs.children[1].classList.add('active'); document.getElementById('knockSchedule').style.display='flex'; renderKnockoutSchedule(); }
+    if(view==='rank'){ 
+      tabs.children[0].classList.add('active'); 
+      document.getElementById('groupView').style.display='grid'; 
+      renderGroupView(); 
+    } else { 
+      tabs.children[1].classList.add('active'); 
+      document.getElementById('groupSchedule').style.display='flex'; 
+      renderGroupSchedule(); 
+    }
+  } else {
+    // 這裡處理純單淘汰模式 (非循環賽轉決賽的情況)
+    if(view==='bracket'){ 
+      tabs.children[0].classList.add('active'); 
+      document.getElementById('bracketView').style.display='flex'; 
+      document.getElementById('lines').style.display='block'; 
+      renderKnockoutBracket(); 
+      setTimeout(drawConnectors, 60); 
+    } else { 
+      tabs.children[1].classList.add('active'); 
+      document.getElementById('knockSchedule').style.display='flex'; 
+      renderKnockoutSchedule(); 
+    }
   }
   syncBars();
 }
+
 
 function initBracket(){
   matchesData={}; groupsData={}; groupMatches=[]; currentMatchId=null;
@@ -783,7 +1271,7 @@ function initBracket(){
 function initGroupStage(){
   const mode=document.getElementById('modeSel').value;
   let prefix = (mode==='single')?'Player':(mode==='double'?'Pair':'Team');
-  const perGroup=4;
+  const perGroup = parseInt(document.getElementById('sizeSel').selectedOptions[0]?.dataset?.pergroup || "4", 10);
   const numGroups=Math.max(1, Math.ceil(TOTAL_PLAYERS/perGroup));
   const alpha="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   for(let g=0; g<numGroups; g++){
@@ -817,62 +1305,100 @@ function updateDoubleName(el,gKey,pid){
   updatePlayerName(gKey,pid,combined);
 }
 
-function renderGroupView(){
-  const cont=document.getElementById('groupView');
-  cont.innerHTML='';
-  const keys=Object.keys(groupsData).sort();
-  const mode=document.getElementById('modeSel').value;
-  let colTitle="選手 (可編輯)";
-  if(mode==='double') colTitle="搭擋 (Pair)";
-  if(mode==='team') colTitle="隊伍 (Team)";
-  keys.forEach(k=>{
-    const box=document.createElement('div');
-    box.className='gbox';
-    const sorted=[...groupsData[k]].sort((a,b)=> (b.wins-a.wins) || (b.legsDiff-a.legsDiff));
+function renderGroupView() {
+  const cont = document.getElementById('groupView');
+  cont.innerHTML = '';
+  const keys = Object.keys(groupsData).sort();
+  const mode = document.getElementById('modeSel').value;
+  
+  // 1. 根據模式決定標題
+  let colTitle = "選手 (可編輯)";
+  if(mode === 'double') colTitle = "搭擋 (Pair)";
+  if(mode === 'team') colTitle = "隊伍 (Team)";
+
+  keys.forEach(k => {
+    const box = document.createElement('div');
+    box.className = 'gbox';
+
+    // 2. 專業排序邏輯：優先看積分 (pts)，再看腿差 (legsDiff)
+    const sorted = [...groupsData[k]].sort((a,b) => (b.pts - a.pts) || (b.legsDiff - a.legsDiff));
+
+    // 3. 修改表格標題，增加「負」與「積分」
     let html = `<div class="gtitle">Group ${k}</div>
     <table class="stand">
-      <tr><th style="width:60%">${colTitle}</th><th>勝</th><th>Diff</th></tr>`;
-    sorted.forEach((p,idx)=>{
-      const cls = idx===0?'rank1':(idx===1?'rank2':'');
-      let input='';
-      if(mode==='double'){
-        const parts=p.name.split('/');
-        const v1=(parts[0]||'').trim(), v2=(parts[1]||'').trim();
+      <tr>
+        <th style="width:40%">${colTitle}</th>
+        <th>勝</th>
+        <th>負</th>
+        <th>局數差</th>
+        <th>積分</th>
+      </tr>`;
+
+    sorted.forEach((p, idx) => {
+      const cls = idx === 0 ? 'rank1' : (idx === 1 ? 'rank2' : '');
+      
+      // 4. 保留原本的編輯輸入框邏輯
+      let input = '';
+      if(mode === 'double'){
+        const parts = (p.name || '').split('/');
+        const v1 = (parts[0] || '').trim(), v2 = (parts[1] || '').trim();
         input = `<div class="doubleRow">
           <input class="nameInput nameHalf" value="${escapeHtml(v1)}" placeholder="選手A" oninput="updateDoubleName(this,'${k}',${p.id})">
           <span class="sep">/</span>
           <input class="nameInput nameHalf" value="${escapeHtml(v2)}" placeholder="選手B" oninput="updateDoubleName(this,'${k}',${p.id})">
         </div>`;
-      }else{
+      } else {
         input = `<input class="nameInput" value="${escapeHtml(p.name)}" placeholder="姓名" oninput="updatePlayerName('${k}',${p.id},this.value)">`;
       }
-      html += `<tr class="${cls}"><td>${input}</td><td>${p.wins}</td><td>${p.legsDiff>0?('+'+p.legsDiff):p.legsDiff}</td></tr>`;
+
+      // 5. 填入數據 (加上 || 0 防止空值)
+      html += `<tr class="${cls}">
+        <td>${input}</td>
+        <td>${p.wins || 0}</td>
+        <td>${p.losses || 0}</td>
+        <td>${p.legsDiff > 0 ? ('+' + p.legsDiff) : (p.legsDiff || 0)}</td>
+        <td><b>${p.pts || 0}</b></td>
+      </tr>`;
     });
+
     html += `</table>`;
-    box.innerHTML=html;
+    box.innerHTML = html;
     cont.appendChild(box);
   });
 }
 function renderGroupSchedule(){
   const cont=document.getElementById('groupSchedule');
-  const ruleText = `Bo${groupRules.bo} / ${groupRules.score}`;
+  
+  // 這裡維持顯示「目前選單設定」的規則標題
+  const globalRuleText = `Bo${document.getElementById('gBo').value} / ${document.getElementById('gScore').value}`;
+  
   let html = `<div style="width:100%;max-width:1000px;margin:0 auto 10px;color:#666;font-weight:900">
-    小組賽統一規則：<span style="color:#007bff">${ruleText}</span>
+    小組賽統一規則：<span style="color:#007bff">${globalRuleText}</span>
   </div>`;
+  
   html += `<table class="table"><thead><tr>
     <th>場次</th><th>時間</th><th>組別</th><th>對戰組合</th><th>規則</th><th>比分</th><th>操作</th>
   </tr></thead><tbody>`;
+  
   groupMatches.forEach((m,idx)=>{
     const p1=groupsData[m.group].find(x=>x.id===m.p1);
     const p2=groupsData[m.group].find(x=>x.id===m.p2);
-    const scoreDisp = m.winner ? `<span class="tag done">${m.score}</span>` : `<span class="tag">-</span>`;
+    
+    // --- 核心修正點：讀取場次物件 m 裡面的 bo 與 score ---
+    // 不要用全域的 ruleText，改用 m.bo 和 m.score
+    const matchRuleText = `Bo${m.bo || 5} / ${m.score || 501}`; 
+    
+    const scoreDisp = m.winner ? `<span class="tag done">${m.score_display || '-'}</span>` : `<span class="tag">-</span>`;
     const btnCls = m.winner ? 'play disabled':'play';
+    
     html += `<tr>
       <td>#${idx+1}</td>
       <td><input class="time" value="${escapeHtml(m.time||'')}" placeholder="00:00" onchange="updateMatchTime('G','${m.id}',this.value)"></td>
       <td>Group ${m.group}</td>
       <td>${escapeHtml(p1.name)} <span style="color:#999;font-size:.8em">vs</span> ${escapeHtml(p2.name)}</td>
-      <td><span class="tag">${ruleText}</span></td>
+      
+      <td><span class="tag">${matchRuleText}</span></td>
+      
       <td>${scoreDisp}</td>
       <td><div class="${btnCls}" onclick="loadGroupMatch('${m.id}')">載入</div></td>
     </tr>`;
@@ -917,59 +1443,79 @@ function loadGroupMatch(id){
   closeBracket();
 }
 
-function generateKnockoutFromGroups(){
-  const keys=Object.keys(groupsData).sort();
-  const numGroups=keys.length;
-  const hasGames = groupMatches.some(m=>m.winner);
-  let msg="確定要產生決賽賽程表嗎？";
-  msg += hasGames ? "\n(將依照目前小組成績，自動填入晉級名單)" : "\n(目前無小組賽成績，將產生空白賽程表)";
-  if(!confirm(msg)) return;
+// 請務必與上述函式配套使用
+function fillFinalNamesFromGroups(groupKeys) {
+    let matchId = 0;
+    // 每兩組進行交叉對位 (A1 vs B2, B1 vs A2)
+    for (let i = 0; i < groupKeys.length; i += 2) {
+        if (i + 1 >= groupKeys.length) break;
 
-  let finalSize = (numGroups===1)?2:(numGroups*2);
-  TOTAL_PLAYERS = finalSize;
-  initSizeOptions(); // refresh selector display (not strictly required)
-  switchStage('final');
-  // build bracket skeleton
-  renderKnockoutBracket(true); // from groups
-  // force all rounds use finalRules
-  const rounds=Math.log2(TOTAL_PLAYERS)||0;
-  for(let r=0;r<rounds;r++){ knockoutRoundRules[r]={bo:finalRules.bo,score:finalRules.score}; }
-  // fill names
-  if(hasGames){
-    if(numGroups===1){
-      const g=keys[0];
-      const top=[...groupsData[g]].sort((a,b)=>(b.wins-a.wins)||(b.legsDiff-a.legsDiff)).slice(0,2);
-      if(top.length===2){ setMatchName(0,1,top[0].name); setMatchName(0,2,top[1].name); }
-    }else{
-      // pair groups A vs B, C vs D...
-      let mid=0;
-      for(let i=0;i<numGroups;i+=2){
-        if(i+1>=numGroups) break;
-        const g1=keys[i], g2=keys[i+1];
-        const top2=(g)=>[...groupsData[g]].sort((a,b)=>(b.wins-a.wins)||(b.legsDiff-a.legsDiff)).slice(0,2);
-        const t1=top2(g1), t2=top2(g2);
-        if(t1.length<2 || t2.length<2) continue;
-        // cross: g1#1 vs g2#2 ; g2#1 vs g1#2
-        setMatchName(mid,1,t1[0].name); setMatchName(mid,2,t2[1].name);
-        setMatchName(mid+1,1,t2[0].name); setMatchName(mid+1,2,t1[1].name);
-        mid += 2;
-      }
+        const g1 = groupKeys[i];
+        const g2 = groupKeys[i + 1];
+
+        // 取得預賽前二名
+        const getTop2 = (g) => [...groupsData[g]].sort((a, b) => (b.wins - a.wins) || (b.legsDiff - a.legsDiff)).slice(0, 2);
+        
+        const t1 = getTop2(g1);
+        const t2 = getTop2(g2);
+
+        // 交叉填入決賽對戰框
+        if (t1[0]) setMatchName(matchId, 1, t1[0].name);
+        if (t2[1]) setMatchName(matchId, 2, t2[1].name);
+
+        if (t2[0]) setMatchName(matchId + 1, 1, t2[0].name);
+        if (t1[1]) setMatchName(matchId + 1, 2, t1[1].name);
+
+        matchId += 2;
     }
-  }
-  setSubView('bracket');
-  setTimeout(drawConnectors,120);
-  syncBars();
+}
+
+// 2. 這是新增加的輔助函式，請放在上述函式的下方，負責交叉對位
+function fillFinalNamesFromGroups(groupKeys) {
+    let matchId = 0;
+    // 每兩組一對進行交叉對位 (A與B, C與D...)
+    for (let i = 0; i < groupKeys.length; i += 2) {
+        if (i + 1 >= groupKeys.length) break;
+
+        const g1 = groupKeys[i];
+        const g2 = groupKeys[i + 1];
+
+        // 排序並取得各組前兩名
+        const getTop2 = (g) => [...groupsData[g]].sort((a, b) => (b.wins - a.wins) || (b.legsDiff - a.legsDiff)).slice(0, 2);
+        
+        const t1 = getTop2(g1);
+        const t2 = getTop2(g2);
+
+        // 交叉對位邏輯：
+        // 第 X 場：G1第一名 vs G2第二名
+        if (t1[0]) setMatchName(matchId, 1, t1[0].name);
+        if (t2[1]) setMatchName(matchId, 2, t2[1].name);
+
+        // 第 X+1 場：G2第一名 vs G1第二名
+        if (t2[0]) setMatchName(matchId + 1, 1, t2[0].name);
+        if (t1[1]) setMatchName(matchId + 1, 2, t1[1].name);
+
+        matchId += 2;
+    }
 }
 
 function renderKnockoutBracket(fromGroups=false){
   const cont=document.getElementById('bracketView');
   cont.innerHTML='';
   matchesData={};
+
   const mode=document.getElementById('modeSel').value;
   const defName = (mode==='single')?'Player':(mode==='double'?'Pair':'Team');
+
   const rounds=Math.log2(TOTAL_PLAYERS);
   let matchCounter=0;
   let matchesInRound = TOTAL_PLAYERS/2;
+
+  // 記錄準決賽的兩個 match id，之後要把敗者導入季軍賽
+  let semiFinalMatchIds = [];
+
+  // 我們會在最後新增一個 thirdPlaceMatchId
+  let thirdPlaceMatchId = null;
 
   for(let r=0;r<rounds;r++){
     const col=document.createElement('div');
@@ -977,7 +1523,10 @@ function renderKnockoutBracket(fromGroups=false){
 
     const header=document.createElement('div');
     header.className='roundHeader';
-    let title = (r===rounds-1)?"Final (冠軍賽)":(matchesInRound===2?"Semi-Final (準決賽)":`Round ${r+1}`);
+	let title =
+	  (r===rounds-1) ? "冠、亞軍戰" :
+	  (matchesInRound===2) ? "準決賽" :
+	  `第 ${r+1} 輪`;
 
     // defaults
     const defaultBo = fromGroups ? finalRules.bo : (r===rounds-1?7:(r>0?5:3));
@@ -1001,7 +1550,10 @@ function renderKnockoutBracket(fromGroups=false){
 
     for(let i=0;i<matchesInRound;i++){
       const mid=matchCounter++;
-      matchesData[mid]={id:mid,round:r,nextMatchId:null,time:''};
+      matchesData[mid]={id:mid,round:r,nextMatchId:null,time:'', status:'pending'};
+
+      // 若此輪是準決賽（matchesInRound===2），記錄此 match id
+      if(matchesInRound===2) semiFinalMatchIds.push(mid);
 
       const card=document.createElement('div');
       card.className='match';
@@ -1019,7 +1571,11 @@ function renderKnockoutBracket(fromGroups=false){
         return `<div class="team"><input id="m${mid}t${tn}a" class="inp" placeholder="${r===0?defName:'Winner'}" onclick="event.stopPropagation()"></div>`;
       };
 
-      card.innerHTML = `<div class="mlab">Match ${mid+1}</div>${teamInput(1)}<div class="vs">VS</div>${teamInput(2)}`;
+		// 判斷是否為冠軍賽（最後一輪 round === rounds-1 且 matchesInRound==1 的那個 mid）
+		const isFinalMatch = (r === rounds - 1);
+
+		card.innerHTML = `<div class="mlab">${isFinalMatch ? '冠、亞軍戰' : ('Match ' + (mid+1))}</div>
+		  ${teamInput(1)}<div class="vs">VS</div>${teamInput(2)}`;
       col.appendChild(card);
     }
 
@@ -1040,12 +1596,88 @@ function renderKnockoutBracket(fromGroups=false){
     count/=2;
   }
 
+  // ======= ✅ 新增季軍賽（3rd place） =======
+  // 條件：至少 4 人才有意義
+  if(TOTAL_PLAYERS>=4){
+    thirdPlaceMatchId = matchCounter++;
+    // 使用 "Final round index" 當作季軍賽輪次（視覺與規則同 Final 或 Semi 皆可）
+    const thirdRoundIndex = rounds-1;
+
+	matchesData[thirdPlaceMatchId] = {
+	  id: thirdPlaceMatchId,
+	  round: thirdRoundIndex,
+	  nextMatchId: null,
+	  time: '',
+	  status: 'third' // ✅這行一定要有
+	};
+
+    // 建立一個獨立欄位顯示季軍賽（放在最後一欄右側）
+    const thirdCol=document.createElement('div');
+    thirdCol.className='roundCol';
+
+    const thirdHeader=document.createElement('div');
+    thirdHeader.className='roundHeader';
+	// ✅ 季、殿軍戰獨立規則（預設 Bo3 / 501）
+	if(!window.__thirdPlaceRules){
+	  window.__thirdPlaceRules = { bo: 3, score: 501 };
+	}
+
+	thirdHeader.innerHTML = `
+	  <div class="roundTitle">季、殿軍戰</div>
+	  <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-top:6px;">
+		<select id="thirdBo" class="sel" style="padding:0;font-size:.8rem" onchange="onThirdRuleChange()">
+		  <option value="3"${window.__thirdPlaceRules.bo===3?' selected':''}>Bo3</option>
+		  <option value="5"${window.__thirdPlaceRules.bo===5?' selected':''}>Bo5</option>
+		  <option value="7"${window.__thirdPlaceRules.bo===7?' selected':''}>Bo7</option>
+		</select>
+		<select id="thirdSc" class="sel" style="padding:0;font-size:.8rem" onchange="onThirdRuleChange()">
+		  <option value="301"${window.__thirdPlaceRules.score===301?' selected':''}>301</option>
+		  <option value="501"${window.__thirdPlaceRules.score===501?' selected':''}>501</option>
+		  <option value="701"${window.__thirdPlaceRules.score===701?' selected':''}>701</option>
+		</select>
+	  </div>
+	`;
+    thirdCol.appendChild(thirdHeader);
+
+    const card=document.createElement('div');
+    card.className='match';
+    card.id=`match-${thirdPlaceMatchId}`;
+    card.onclick=()=>selectMatch(thirdPlaceMatchId);
+
+    const teamInput=(tn)=>{
+      if(mode==='double'){
+        return `<div class="team" style="padding:2px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">
+          <input id="m${thirdPlaceMatchId}t${tn}a" class="inp" placeholder="準決賽敗者" onclick="event.stopPropagation()" style="width:40%;min-width:0;text-align:center;padding:2px;font-size:14px">
+          <span style="flex:0 0 auto;font-weight:900;color:#999">/</span>
+          <input id="m${thirdPlaceMatchId}t${tn}b" class="inp" placeholder="準決賽敗者" onclick="event.stopPropagation()" style="width:40%;min-width:0;text-align:center;padding:2px;font-size:14px">
+        </div>`;
+      }
+      return `<div class="team"><input id="m${thirdPlaceMatchId}t${tn}a" class="inp" placeholder="準決賽敗者" onclick="event.stopPropagation()"></div>`;
+    };
+
+	card.innerHTML = `<div class="mlab">季、殿軍戰</div>${teamInput(1)}<div class="vs">VS</div>${teamInput(2)}`;	
+    thirdCol.appendChild(card);
+
+    cont.appendChild(thirdCol);
+
+    // 將準決賽兩場的 match 資訊中記錄 thirdMatchId 與其敗者要塞到哪個位置
+    // 之後由 advanceWinner() 來填入
+    window.__thirdPlace = {
+      id: thirdPlaceMatchId,
+      semiIds: semiFinalMatchIds.slice(0,2) // 只需要前兩場準決賽
+    };
+  } else {
+    window.__thirdPlace = null;
+  }
+
   // if from groups, enforce all header selects to finalRules
   if(fromGroups){
     const rounds=Math.log2(TOTAL_PLAYERS)||0;
     for(let r=0;r<rounds;r++){
-      document.getElementById(`koBo${r}`).value=String(finalRules.bo);
-      document.getElementById(`koSc${r}`).value=String(finalRules.score);
+      const b = document.getElementById(`koBo${r}`);
+      const s = document.getElementById(`koSc${r}`);
+      if(b) b.value=String(finalRules.bo);
+      if(s) s.value=String(finalRules.score);
     }
   }
 
@@ -1072,6 +1704,12 @@ function onRoundRuleChange(roundIdx, fromGroups){
     knockoutRoundRules[roundIdx]={bo:bo,score:sc};
   }
   renderKnockoutSchedule();
+}
+function onThirdRuleChange(){
+  const bo = parseInt(document.getElementById('thirdBo').value, 10);
+  const sc = parseInt(document.getElementById('thirdSc').value, 10);
+  window.__thirdPlaceRules = { bo, score: sc };
+  renderKnockoutSchedule(); // 讓時間表同步更新顯示規則
 }
 
 function getTeamName(mid,team){
@@ -1124,16 +1762,28 @@ function renderKnockoutSchedule(){
 function selectMatch(mid){
   const n1 = getTeamName(mid,1) || "P1";
   const n2 = getTeamName(mid,2) || "P2";
-  const rule = knockoutRoundRules[matchesData[mid].round] || {bo:3,score:501};
-  const legsNeeded = Math.ceil(rule.bo/2);
+
+  // 先拿一般淘汰賽規則（保底值避免 undefined）
+  let rule = knockoutRoundRules[matchesData[mid].round] || { bo: 3, score: 501 };
+
+  // ✅ 如果是「季、殿軍戰」就改用獨立規則
+  if(matchesData[mid] && matchesData[mid].status === 'third'){
+    rule = window.__thirdPlaceRules || { bo: 3, score: 501 };
+  }
+
+  const legsNeeded = Math.ceil(rule.bo / 2);
+
   if(!confirm(`載入 Match ${mid+1}?\n${n1} VS ${n2}\n規則：Bo${rule.bo}（搶 ${legsNeeded} 勝） / ${rule.score}`)) return;
 
   currentMatchId = mid;
   targetLegs = legsNeeded;
   GAME_MODE = rule.score;
+
   document.getElementById('p1Name').innerText = n1;
   document.getElementById('p2Name').innerText = n2;
-  players[1].name=n1; players[2].name=n2;
+  players[1].name = n1;
+  players[2].name = n2;
+
   resetMatch();
   closeBracket();
 }
@@ -1167,49 +1817,85 @@ function advanceWinner(winnerIdx){
   // knockout
   const match=matchesData[currentMatchId];
   const wName = (winnerIdx===1)?document.getElementById('p1Name').innerText:document.getElementById('p2Name').innerText;
+  const lName = (winnerIdx===1)?document.getElementById('p2Name').innerText:document.getElementById('p1Name').innerText;
 
+  // ✅ 如果是季軍賽本身
+  if(match.status === 'third'){
+    alert(`季軍賽結束！\n🥉 第三名：${wName}\n第4名：${lName}`);
+    renderKnockoutSchedule();
+    openBracket();
+    setTimeout(drawConnectors,120);
+    return;
+  }
+
+  // 正常晉級到下一輪
   if(match.nextMatchId!==null){
     const teamNum = (match.id%2===0)?1:2;
     setMatchName(match.nextMatchId, teamNum, wName);
+
+    // ✅ 準決賽敗者 → 送季軍賽
+    // 判斷準決賽：下一場就是 Final（也就是 nextMatchId 的 round 是最後一輪）
+    if(window.__thirdPlace && window.__thirdPlace.semiIds.includes(match.id)){
+      const thirdId = window.__thirdPlace.id;
+
+      // 哪一邊填入季軍賽：依照是第1場準決賽放 team1，第2場準決賽放 team2
+      const idx = window.__thirdPlace.semiIds.indexOf(match.id);
+      const thirdTeamNum = (idx === 0) ? 1 : 2;
+
+      setMatchName(thirdId, thirdTeamNum, lName);
+    }
+
     alert(`恭喜 ${wName} 晉級！`);
-  }else{
-    alert(`恭喜 ${wName} 獲得總冠軍！`);
+  } else {
+    // Final match end
+    alert(`🏆 冠軍賽結束！\n🥇 冠軍：${wName}\n🥈 亞軍：${lName}`);
   }
+
   renderKnockoutSchedule();
   openBracket();
   setTimeout(drawConnectors,120);
 }
 
 function drawConnectors(){
-  const svgL=document.getElementById('lines');
-  svgL.innerHTML='';
-  // compute svg size to cover scroll area
-  const scroll=document.getElementById('scroll');
-  const bbox = scroll.getBoundingClientRect();
-  svgL.setAttribute('width', bbox.width);
-  svgL.setAttribute('height', bbox.height);
+  const svgL = document.getElementById('lines');
+  const scroll = document.getElementById('scroll');
+  if(!svgL || !scroll) return;
 
-  const rounds=Math.log2(TOTAL_PLAYERS)||0;
-  if(rounds<2) return;
-  // for each match in round r, connect to next round
-  Object.values(matchesData).forEach(m=>{
-    if(m.nextMatchId===null) return;
-    const from=document.getElementById(`match-${m.id}`);
-    const to=document.getElementById(`match-${m.nextMatchId}`);
+  // 1. 強制設定 SVG 寬高為滾動區域的「完整內容」大小
+  // 這樣無論 16人或 128人，線條層都能覆蓋到最右側與最下方
+  const fullWidth = scroll.scrollWidth;
+  const fullHeight = scroll.scrollHeight;
+  svgL.setAttribute('width', fullWidth);
+  svgL.setAttribute('height', fullHeight);
+  
+  svgL.innerHTML = '';
+
+  const rounds = Math.log2(TOTAL_PLAYERS) || 0;
+  if(rounds < 1) return;
+
+  // 取得 scroll 容器相對於視窗的偏移，用來計算相對座標
+  const sr = scroll.getBoundingClientRect();
+
+  Object.values(matchesData).forEach(m => {
+    if(m.nextMatchId === null) return;
+    const from = document.getElementById(`match-${m.id}`);
+    const to = document.getElementById(`match-${m.nextMatchId}`);
     if(!from || !to) return;
 
-    const fr=from.getBoundingClientRect();
-    const tr=to.getBoundingClientRect();
-    const sr=scroll.getBoundingClientRect();
+    const fr = from.getBoundingClientRect();
+    const tr = to.getBoundingClientRect();
 
-    const x1 = fr.right - sr.left;
-    const y1 = (fr.top + fr.bottom)/2 - sr.top;
-    const x2 = tr.left - sr.left;
-    const y2 = (tr.top + tr.bottom)/2 - sr.top;
+    // 2. 計算座標時，加上容器目前的滾動距離 (scrollLeft/scrollTop)
+    // 這樣在大尺寸賽程表中，即使左右捲動，線條也會在正確的位置
+    const x1 = fr.right - sr.left + scroll.scrollLeft;
+    const y1 = (fr.top + fr.bottom) / 2 - sr.top + scroll.scrollTop;
+    const x2 = tr.left - sr.left + scroll.scrollLeft;
+    const y2 = (tr.top + tr.bottom) / 2 - sr.top + scroll.scrollTop;
 
-    const midx = (x1+x2)/2;
-    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
-    path.setAttribute('class','connector');
+    const midx = (x1 + x2) / 2;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute('class', 'connector');
+    // 使用直角線連接
     path.setAttribute('d', `M ${x1} ${y1} L ${midx} ${y1} L ${midx} ${y2} L ${x2} ${y2}`);
     svgL.appendChild(path);
   });
@@ -1230,12 +1916,158 @@ function escapeHtml(s){
 }
 
 /* ========= Init ========= */
-window.addEventListener('load', ()=>{
-  createBoard();
-  initSizeOptions();
-  initBracket();
-  resetMatch();
-});
+/* ========= Init ========= */
+	window.addEventListener('load', ()=>{
+	  createBoard();
+	  syncBars();        // ✅ 再控制顯示狀態
+	  initBracket();     // ✅ 建立賽程
+	  resetMatch();      // ✅ 初始化計分板
+
+	  // ✅ 需要就開賽程視窗，不需要就註解掉
+	  openBracket(); 
+	});
+    // 強制解鎖並重新綁定決賽按鈕
+    const btnBracket = document.getElementById('tabFinalBracket');
+    if (btnBracket) {
+        btnBracket.onclick = function() { initFinalsFramework(); };
+        btnBracket.style.display = "block"; // 強制顯示
+    }
+
+    const btnSch = document.getElementById('tabFinalSch');
+    if (btnSch) {
+        btnSch.onclick = function() { showFinalsView('schedule'); };
+        btnSch.style.display = "block"; // 強制顯示
+    }
+
+/* ============================================================
+   決賽獨立模組：單淘汰賽樹狀圖框架
+   ============================================================ */
+
+// 1. 初始化決賽框架 (目前固定為 8人單淘汰作為範例)
+function initFinalsFramework() {
+    const keys = Object.keys(groupsData).sort();
+    const numGroups = keys.length;
+    
+    // 計算決賽人數
+    let finalSize = Math.max(4, numGroups * 2); 
+    finalSize = Math.pow(2, Math.ceil(Math.log2(finalSize)));
+
+    TOTAL_PLAYERS = finalSize;
+    currentStage = 'final';
+
+    // 1. 繪製樹狀圖
+    renderKnockoutBracket(true);
+
+    // 2. 執行全自動填名 (包含 A1, B2 代號邏輯)
+    autoLinkGroupResults();
+
+    // 3. 顯示視圖與畫線
+    showFinalsView('bracket');
+}
+
+// 2. 專屬視圖切換 (解決導向錯誤問題)
+function showFinalsView(sub) {
+    // 1. 隱藏所有主要內容區塊
+    const views = ['groupView', 'groupSchedule', 'bracketView', 'knockSchedule'];
+    views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    // 2. 核心修正：隱藏「預賽規則列」與「全域決賽規則列」
+    // 當進入決賽賽程表或決賽時間表時，這些都不需要出現
+    const gRules = document.getElementById('groupRules');
+    const fRules = document.getElementById('finalRules');
+    const returnBtn = document.querySelector('.btn-return'); // 順便處理掉那個返回按鈕 (如果有的話)
+
+    if (gRules) gRules.style.display = 'none';
+    if (fRules) fRules.style.display = 'none';
+    if (returnBtn) returnBtn.style.display = 'none';
+
+    if (document.getElementById('lines')) document.getElementById('lines').style.display = 'none';
+
+    // 3. 根據子頁面顯示內容
+    if (sub === 'bracket') {
+        document.getElementById('bracketView').style.display = 'flex';
+        document.getElementById('lines').style.display = 'block';
+        updateTabActive('tabFinalBracket');
+        setTimeout(drawConnectors, 150);
+    } else if (sub === 'schedule') {
+        document.getElementById('knockSchedule').style.display = 'flex';
+        updateTabActive('tabFinalSch');
+    }
+}
+
+// 3. 自動連動預賽名單 (全自動分區版：支援 2, 4, 8, 16 組以上)
+function autoLinkGroupResults() {
+    const keys = Object.keys(groupsData).sort(); // ['A', 'B', 'C'..., 'P']
+    const numGroups = keys.length;
+    
+    // 1. 生成分區對位序列 (核心算法)
+    // 目的：確保第 i 組的第 1 名對上「遠端組」的第 2 名
+    // 例如 16 組時：A1 vs P2, B1 vs O2...
+    let pattern = [];
+    for (let i = 0; i < numGroups; i++) {
+        // 上半部對位邏輯：第 i 組第 1 名 vs 倒數第 i 組第 2 名
+        // 下半部對位邏輯：倒數第 i 組第 1 名 vs 第 i 組第 2 名
+        // 這樣能完美實現您要求的「分區隔離」
+        if (i < numGroups / 2) {
+            // 上半區場次
+            pattern.push([i, 1]);              // 組別索引, 名次
+            pattern.push([numGroups - 1 - i, 2]);
+        } else {
+            // 下半區場次
+            let idx = i - (numGroups / 2);
+            pattern.push([numGroups - 1 - idx, 1]);
+            pattern.push([idx, 2]);
+        }
+    }
+
+    // 2. 依照產生的 pattern 執行填名
+    // 每兩個一組填入一個 Match
+    for (let i = 0; i < pattern.length * 2; i += 2) {
+        const mId = Math.floor(i / 2);
+        const p1Info = pattern[i];   
+        const p2Info = pattern[i + 1];
+
+        if (!p1Info || !p2Info) break;
+
+        const name1 = getSmartName(keys[p1Info[0]], p1Info[1]);
+        const name2 = getSmartName(keys[p2Info[0]], p2Info[1]);
+
+        setMatchName(mId, 1, name1);
+        setMatchName(mId, 2, name2);
+    }
+}
+
+// 智慧名稱判斷：確保 A1, B2 等標籤在 64 人模式下也能出現
+function getSmartName(groupKey, rank) {
+    if (!groupKey) return "";
+    const group = groupsData[groupKey];
+    
+    // 如果連組別資料都還沒初始化，直接回傳標籤
+    if (!group) return `${groupKey}${rank}`;
+
+    // 排序該組名次 (勝場 > 腿差)
+    const ranked = [...group].sort((a, b) => (b.wins - a.wins) || (b.legsDiff - a.legsDiff));
+    const target = ranked[rank - 1];
+
+    // 判定：如果有成績則顯示人名，否則顯示代號 (如 P2)
+    if (target && target.wins > 0) {
+        return target.name;
+    }
+    return `${groupKey}${rank}`;
+}
+
+// 輔助：更新標籤狀態
+function updateTabActive(activeId) {
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    const activeTab = document.getElementById(activeId);
+    if (activeTab) activeTab.classList.add('active');
+}
+
 </script>
 </body>
 </html>
+
